@@ -124,12 +124,13 @@ android {
         }
     }
 
-    // Un APK par ABI : la plupart des Fire TV Sticks ont un système 32 bits.
+    // Myo TV cible uniquement les appareils Android TV ARM 64 bits.
+    // Un seul APK arm64-v8a est produit pour éviter les variantes inutiles.
     splits {
         abi {
             isEnable = true
             reset()
-            include("armeabi-v7a", "arm64-v8a", "x86")
+            include("arm64-v8a")
             isUniversalApk = false
         }
     }
