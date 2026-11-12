@@ -104,7 +104,7 @@ fun PosterCard(
     val press = pressProgress(source)
     // La légende rend les affiches identifiables sans devoir déchiffrer le visuel.
     // La colonne entière passe au premier plan pour ne jamais couper les crochets.
-    Column(modifier.zIndex(if (focused) 1f else 0f).width(width)) {
+    Column(modifier.zIndex(if (focused) 1f else 0f).then(if (rank == null) Modifier.width(width) else Modifier)) {
         Row(verticalAlignment = Alignment.Bottom) {
             if (rank != null) {
                 Text(
@@ -135,7 +135,7 @@ fun PosterCard(
                 style = MovixType.CardTitle,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.width(width).padding(top = 8.dp).clearAndSetSemantics { },
+                modifier = Modifier.padding(start = if (rank != null) 50.dp else 0.dp).width(width).padding(top = 8.dp).clearAndSetSemantics { },
             )
         }
     }
