@@ -330,7 +330,7 @@ private fun Hero(info: HeroInfo?, trailer: BannerTrailer, actionLabel: Int, onAc
                     if (h.kicker != null) Text(h.kicker, style = MovixType.Kicker)
                 }
                 Spacer(Modifier.height(12.dp))
-                Text(h.title, style = MovixType.Hero, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(h.title, style = MovixType.Hero, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.semantics { heading() })
                 Spacer(Modifier.height(10.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                     h.rating?.let { Text("★ " + String.format(Locale.FRANCE, "%.1f", it), style = MovixType.MetaStrong) }
