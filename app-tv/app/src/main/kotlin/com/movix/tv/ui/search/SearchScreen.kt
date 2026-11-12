@@ -300,6 +300,7 @@ fun SearchScreen(onOpen: (MediaItem) -> Unit, modifier: Modifier = Modifier) {
                                     onOpen(item)
                                 },
                                 onFocused = {},
+                                contentDescription = item.title,
                                 modifier = if (i == focusIndex) Modifier.focusRequester(resultFocus) else Modifier,
                             )
                         }
