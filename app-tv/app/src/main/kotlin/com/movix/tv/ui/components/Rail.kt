@@ -35,6 +35,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
@@ -159,6 +161,11 @@ private fun RailItem(entry: RailEntry, isCurrent: Boolean, expanded: Boolean, re
                 .height(34.dp)
                 .then(if (expanded) Modifier.width(180.dp) else Modifier.width(34.dp))
                 .background(if (focused) MovixColors.Text else MovixColors.Ink.copy(alpha = 0f), RoundedCornerShape(10.dp))
+                .semantics {
+                    role = Role.Button
+                    contentDescription = stringResource(entry.label)
+                    selected = isCurrent
+                }
                 .clickable(interactionSource = source, indication = null, onClick = onClick)
                 .padding(horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
