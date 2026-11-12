@@ -104,6 +104,26 @@ internal fun AppearancePane() {
     }
 }
 
+// ---------------------------------------------------------------- Accessibilité
+
+@Composable
+internal fun AccessibilityPane() {
+    val (values, write) = rememberUiValues()
+    val reduceMotion = UiPrefs.flag(values, UiKeys.REDUCE_MOTION, default = false)
+    Column(PaneScroll.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        PaneHeader(
+            stringResource(R.string.settings_accessibility_title),
+            stringResource(R.string.settings_accessibility_body),
+        )
+        ToggleRow(
+            stringResource(R.string.accessibility_reduce_motion),
+            reduceMotion,
+            { write(UiKeys.REDUCE_MOTION, if (reduceMotion) null else "1") },
+            body = stringResource(R.string.accessibility_reduce_motion_body),
+        )
+    }
+}
+
 // ---------------------------------------------------------------- Sous-titres
 
 @Composable
