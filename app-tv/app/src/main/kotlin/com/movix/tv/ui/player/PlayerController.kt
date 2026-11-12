@@ -29,6 +29,7 @@ import com.movix.tv.data.local.WatchMeta
 import com.movix.tv.data.movix.Lang
 import com.movix.tv.data.movix.PlayRequest
 import com.movix.tv.data.movix.PlaybackSource
+import com.movix.tv.data.movix.PlaybackSource
 import com.movix.tv.data.movix.SourceSelector
 import com.movix.tv.data.movix.StreamKind
 import com.movix.tv.data.movix.SubtitleTrack
@@ -56,7 +57,7 @@ import okhttp3.Request
 
 /** Ce que le lecteur ouvre : la demande de sources et de quoi titrer l'écran. */
 @Immutable
-data class PlayTarget(val request: PlayRequest, val title: String, val backdropPath: String?)
+data class PlayTarget(val request: PlayRequest, val title: String, val backdropPath: String?, val directSource: PlaybackSource? = null)
 
 enum class PlayerPhase { LOADING, NEED_VIP, NO_SOURCE, PLAYING }
 
@@ -313,9 +314,15 @@ class PlayerController(
         chooseSubtitle(SubtitleChoice.Off)
         player.stop()
         loadJob = scope.launch {
+            target.directSource?.let { direct ->
+                sources = listOf(direct)
+                phase = PlayerPhase.PLAYING
+                play(direct, 0L)
+                return@launch
+            }
             launch { loadMeta() }
             // Ouvert sans titre (reprise d'une entrée venue du site) : on le complète.
-            if (target.title.isBlank() || target.backdropPath == null) launch {
+            if (target.directSource == null && (target.title.isBlank() || target.backdropPath == null)) launch {
                 val d = runCatching { container.catalog.details(target.request.type, target.request.tmdbId) }.getOrNull() ?: return@launch
                 target = target.copy(title = target.title.ifBlank { d.item.title }, backdropPath = target.backdropPath ?: d.item.backdropPath)
             }
@@ -565,7 +572,7 @@ class PlayerController(
     )
 
     private fun onReady() {
-        if (!metaWritten) {
+        if (!metaWritten && target.directSource == null) {
             metaWritten = true
             container.appScope.launch {
                 // Reprise depuis une entrée sans fiche : titre et image demandés à TMDB,
@@ -592,7 +599,7 @@ class PlayerController(
                 )
             }
         }
-        if (!segmentsRequested && durationMs > 0) {
+        if (target.directSource == null && !segmentsRequested && durationMs > 0) {
             segmentsRequested = true
             scope.launch { loadSegments() }
         }
