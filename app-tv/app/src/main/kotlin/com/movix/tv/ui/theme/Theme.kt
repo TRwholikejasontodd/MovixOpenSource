@@ -92,8 +92,8 @@ object MovixType {
     val MetaStrong = Meta.copy(fontWeight = FontWeight.SemiBold, color = MovixColors.Text)
     val Kicker = TextStyle(fontFamily = Instrument, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = MovixColors.Muted)
     val Button = TextStyle(fontFamily = Instrument, fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp, color = MovixColors.Text)
-    val CardTitle = TextStyle(fontFamily = Instrument, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = MovixColors.Text)
-    val CardSub = TextStyle(fontFamily = Instrument, fontSize = 11.sp, lineHeight = 15.sp, color = MovixColors.Muted)
+    val CardTitle = TextStyle(fontFamily = Instrument, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = MovixColors.Text)
+    val CardSub = TextStyle(fontFamily = Instrument, fontSize = 12.sp, lineHeight = 16.sp, color = MovixColors.Muted)
     val Badge = TextStyle(fontFamily = Instrument, fontWeight = FontWeight.Bold, fontSize = 11.sp, color = MovixColors.Text)
 }
 
