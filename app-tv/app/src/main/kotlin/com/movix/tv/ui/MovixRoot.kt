@@ -134,6 +134,7 @@ fun MovixRoot(onExit: () -> Unit) {
                             onSwitchProfile = { picker = ProfilePickerFrom.SETTINGS },
                         )
                         Section.WATCHLIST -> WatchlistScreen(onOpen = { nav.push(Route.Details(it.type, it.id, it)) }, onEmptyBack = { railRequester.requestFocus() }, modifier = contentModifier.padding(start = 60.dp))
+                        Section.CLASSICS -> ClassicsScreen(onPlay = { nav.push(Route.Player(it)) }, modifier = contentModifier.padding(start = 60.dp))
                         else -> BrowseScreen(
                             section = route.section,
                             onOpen = { nav.push(Route.Details(it.type, it.id, it)) },
