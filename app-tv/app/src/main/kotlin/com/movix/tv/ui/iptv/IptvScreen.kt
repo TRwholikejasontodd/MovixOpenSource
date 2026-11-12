@@ -5,7 +5,6 @@ import android.util.Xml
 import android.view.SurfaceView
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -14,12 +13,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -53,7 +50,6 @@ import org.xmlpull.v1.XmlPullParser
 import java.net.URL
 import java.net.URLEncoder
 import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
 
 private data class Channel(val name: String, val url: String, val group: String = "Autres", val logo: String? = null, val tvgId: String? = null)
@@ -260,9 +256,9 @@ private fun parseM3u(source: String): List<Channel> {
         val line = raw.trim()
         if (line.startsWith("#EXTINF", true)) {
             name = line.substringAfterLast(',').trim().ifBlank { "Chaîne" }
-            group = Regex("""group-title="([^"]*)"""").find(line)?.groupValues?.getOrNull(1) ?: "Autres"
-            logo = Regex("""tvg-logo="([^"]*)"""").find(line)?.groupValues?.getOrNull(1)
-            tvgId = Regex("""tvg-id="([^"]*)"""").find(line)?.groupValues?.getOrNull(1)
+            group = Regex("group-title=\\"([^\\"]*)\\"").find(line)?.groupValues?.getOrNull(1) ?: "Autres"
+            logo = Regex("tvg-logo=\\"([^\\"]*)\\"").find(line)?.groupValues?.getOrNull(1)
+            tvgId = Regex("tvg-id=\\"([^\\"]*)\\"").find(line)?.groupValues?.getOrNull(1)
         } else if (line.isNotEmpty() && !line.startsWith("#") && (line.startsWith("http://") || line.startsWith("https://"))) {
             result += Channel(name.ifBlank { line.substringAfterLast('/').take(50) }, line, group, logo, tvgId)
             name = ""; group = "Autres"; logo = null; tvgId = null
