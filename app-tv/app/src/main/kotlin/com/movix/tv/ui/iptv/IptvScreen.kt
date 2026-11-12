@@ -256,9 +256,9 @@ private fun parseM3u(source: String): List<Channel> {
         val line = raw.trim()
         if (line.startsWith("#EXTINF", true)) {
             name = line.substringAfterLast(',').trim().ifBlank { "Chaîne" }
-            group = Regex("group-title=\\"([^\\"]*)\\"").find(line)?.groupValues?.getOrNull(1) ?: "Autres"
-            logo = Regex("tvg-logo=\\"([^\\"]*)\\"").find(line)?.groupValues?.getOrNull(1)
-            tvgId = Regex("tvg-id=\\"([^\\"]*)\\"").find(line)?.groupValues?.getOrNull(1)
+            group = Regex("group-title=\"([^\"]*)\"").find(line)?.groupValues?.getOrNull(1) ?: "Autres"
+            logo = Regex("tvg-logo=\"([^\"]*)\"").find(line)?.groupValues?.getOrNull(1)
+            tvgId = Regex("tvg-id=\"([^\"]*)\"").find(line)?.groupValues?.getOrNull(1)
         } else if (line.isNotEmpty() && !line.startsWith("#") && (line.startsWith("http://") || line.startsWith("https://"))) {
             result += Channel(name.ifBlank { line.substringAfterLast('/').take(50) }, line, group, logo, tvgId)
             name = ""; group = "Autres"; logo = null; tvgId = null
