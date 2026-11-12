@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="app_name">Sonic Streaming</string>
     <string name="nav_search">Search</string>
     <string name="nav_home">Home</string>
     <string name="nav_movies">Movies</string>
     <string name="nav_series">TV shows</string>
     <string name="nav_anime">Anime</string>
+    <string name="nav_iptv">Live TV</string>
     <string name="nav_classics">Classics</string>
     <string name="nav_watchlist">My list</string>
     <string name="nav_settings">Settings</string>
