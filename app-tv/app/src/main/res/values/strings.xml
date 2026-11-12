@@ -7,6 +7,7 @@
     <string name="nav_movies">Films</string>
     <string name="nav_series">Séries</string>
     <string name="nav_anime">Animés</string>
+    <string name="nav_classics">Classiques</string>
     <string name="nav_watchlist">Ma liste</string>
     <string name="nav_settings">Réglages</string>
 
@@ -49,6 +50,12 @@
     <string name="error_title">Impossible de charger le catalogue</string>
     <string name="error_body">Vérifie la connexion de la télé, puis réessaie.</string>
     <string name="empty_watchlist">Ta liste est vide. Ajoute un film ou une série depuis sa fiche.</string>
+
+    <string name="classics_title">Classiques &amp; domaine public</string>
+    <string name="classics_description">Films signalés comme appartenant au domaine public sur Internet Archive. La disponibilité et la compatibilité des fichiers peuvent varier.</string>
+    <string name="classics_loading">Recherche des films autorisés…</string>
+    <string name="classics_error">Le catalogue Internet Archive est momentanément indisponible. Réessaie plus tard.</string>
+    <string name="classics_empty">Aucun fichier vidéo MP4 vérifié n’est disponible dans cette sélection pour le moment.</string>
 
     <string name="search_hint">Tape un titre</string>
     <string name="search_empty">Aucun résultat pour « %s ».</string>
