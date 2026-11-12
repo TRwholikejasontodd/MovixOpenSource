@@ -338,7 +338,7 @@ private fun Hero(info: HeroInfo?, trailer: BannerTrailer, actionLabel: Int, onAc
                 Text(h.overview, style = MovixType.Body, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.width(380.dp))
                 if (onAction != null) {
                     Spacer(Modifier.height(8.dp))
-                    PillButton(stringResource(actionLabel), onAction)
+                    PillButton(stringResource(actionLabel), onAction, primary = true)
                 }
             }
         }
