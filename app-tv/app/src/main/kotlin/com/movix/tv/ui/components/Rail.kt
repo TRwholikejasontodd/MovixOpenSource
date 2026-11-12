@@ -124,7 +124,7 @@ fun Rail(
             .onFocusChanged { expanded = it.hasFocus; onFocusChanged(it.hasFocus) }
             .focusGroup()
             .padding(top = 26.dp, bottom = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Image(
             painterResource(R.drawable.ic_movix_mark),
