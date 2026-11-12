@@ -29,6 +29,8 @@ import androidx.compose.ui.zIndex
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -91,6 +93,7 @@ fun PosterCard(
     onFocused: () -> Unit,
     modifier: Modifier = Modifier,
     rank: Int? = null,
+    contentDescription: String? = null,
 ) {
     val (source, focused) = rememberFocusable(onFocused)
     val progress = focusProgress(focused)
@@ -110,6 +113,10 @@ fun PosterCard(
                 .pressScale(press)
                 .focusScale(progress)
                 .focusBrackets { progress.value }
+                .semantics(mergeDescendants = true) {
+                    role = Role.Button
+                    contentDescription?.let { this.contentDescription = it }
+                }
                 .clickable(interactionSource = source, indication = null, onClick = onClick)
                 .size(92.dp, 138.dp)
                 .clip(RoundedCornerShape(7.dp)),
@@ -142,6 +149,10 @@ fun LandscapeCard(
                 .pressScale(press)
                 .focusScale(progress)
                 .focusBrackets { progress.value }
+                .semantics(mergeDescendants = true) {
+                    role = Role.Button
+                    contentDescription = listOf(title, subtitle).filter { it.isNotBlank() }.joinToString(", ")
+                }
                 .clickable(interactionSource = source, indication = null, onClick = onClick)
                 .size(width, height)
                 .clip(CardShape),
