@@ -191,11 +191,13 @@ fun PillButton(
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
     selected: Boolean = false,
+    primary: Boolean = false,
 ) {
     val source = remember { MutableInteractionSource() }
     val focused by source.collectIsFocusedAsState()
     val bg = when {
         focused -> MovixColors.Text
+        primary -> MovixColors.Red
         selected -> MovixColors.Chip
         else -> MovixColors.Chip
     }
@@ -244,7 +246,7 @@ fun TabPill(text: String, selected: Boolean, onClick: () -> Unit, onFocused: () 
             .pressScale(press)
             .clip(RoundedCornerShape(999.dp))
             .background(bg)
-            .semantics { role = Role.Button; contentDescription = text }
+            .semantics { role = Role.Button; contentDescription = text; this.selected = selected }
             .clickable(interactionSource = source, indication = null, onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 6.dp),
     )
