@@ -679,7 +679,7 @@ class PlayerController(
     }
 
     fun saveProgress(ended: Boolean = false) {
-        if (phase != PlayerPhase.PLAYING) return
+        if (phase != PlayerPhase.PLAYING || target.directSource != null) return
         val dur = (player.duration.takeIf { it > 0 } ?: return) / 1000.0
         val pos = if (ended) dur else player.currentPosition / 1000.0
         val key = progressKey
