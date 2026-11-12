@@ -153,13 +153,13 @@ private fun RailItem(entry: RailEntry, isCurrent: Boolean, expanded: Boolean, re
     }
     Box(Modifier.padding(start = 13.dp)) {
         if (isCurrent) {
-            Box(Modifier.offset(x = (-13).dp, y = 9.dp).size(3.dp, 16.dp).background(MovixColors.Red, RoundedCornerShape(2.dp)))
+            Box(Modifier.offset(x = (-13).dp, y = 14.dp).size(3.dp, 16.dp).background(MovixColors.Red, RoundedCornerShape(2.dp)))
         }
         Row(
             Modifier
                 .then(if (requester != null) Modifier.focusRequester(requester) else Modifier)
-                .height(34.dp)
-                .then(if (expanded) Modifier.width(180.dp) else Modifier.width(34.dp))
+                .height(44.dp)
+                .then(if (expanded) Modifier.width(194.dp) else Modifier.width(44.dp))
                 .background(if (focused) MovixColors.Text else MovixColors.Ink.copy(alpha = 0f), RoundedCornerShape(10.dp))
                 .semantics {
                     role = Role.Button
@@ -171,7 +171,7 @@ private fun RailItem(entry: RailEntry, isCurrent: Boolean, expanded: Boolean, re
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Image(rememberVectorPainter(entry.icon), null, Modifier.size(18.dp), colorFilter = ColorFilter.tint(fg))
+            Image(rememberVectorPainter(entry.icon), null, Modifier.size(20.dp), colorFilter = ColorFilter.tint(fg))
             if (expanded) Text(stringResource(entry.label), style = MovixType.Button.copy(color = fg), maxLines = 1)
         }
     }
