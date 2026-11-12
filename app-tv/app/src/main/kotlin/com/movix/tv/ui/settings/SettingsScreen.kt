@@ -69,6 +69,7 @@ import java.util.Locale
 private enum class Pane(val label: Int) {
     ACCOUNT(R.string.settings_account_title),
     APPEARANCE(R.string.settings_section_appearance),
+    ACCESSIBILITY(R.string.settings_accessibility_title),
     SUBTITLES(R.string.settings_section_subtitles),
     HOME(R.string.settings_section_home),
     RAIL(R.string.settings_section_rail),
@@ -124,6 +125,7 @@ fun SettingsScreen(onLinkAccount: () -> Unit, modifier: Modifier = Modifier, onS
                     when (pane) {
                         Pane.ACCOUNT -> AccountPane(onLinkAccount, onSwitchProfile)
                         Pane.APPEARANCE -> AppearancePane()
+                        Pane.ACCESSIBILITY -> AccessibilityPane()
                         Pane.SUBTITLES -> SubtitlesPane()
                         Pane.HOME -> HomePane()
                         Pane.RAIL -> RailPane()
