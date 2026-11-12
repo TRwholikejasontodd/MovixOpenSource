@@ -51,6 +51,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -324,7 +326,7 @@ private fun MediaRow(
     onOpen: (MediaItem) -> Unit,
 ) {
     Column {
-        Text(title, style = MovixType.Row, modifier = Modifier.padding(start = ContentStart, bottom = 10.dp))
+        Text(title, style = MovixType.Row, modifier = Modifier.padding(start = ContentStart, bottom = 10.dp).semantics { heading() })
         LazyRow(
             Modifier.fillMaxWidth().padding(start = RailWidth).focusRestorer(),
             contentPadding = PaddingValues(start = RowInset, end = 48.dp, top = 8.dp, bottom = 8.dp),
@@ -360,7 +362,7 @@ private fun ContinueRow(
 ) {
     val context = LocalContext.current
     Column {
-        Text(stringResource(R.string.row_continue), style = MovixType.Row, modifier = Modifier.padding(start = ContentStart, bottom = 10.dp))
+        Text(stringResource(R.string.row_continue), style = MovixType.Row, modifier = Modifier.padding(start = ContentStart, bottom = 10.dp).semantics { heading() })
         LazyRow(
             Modifier.fillMaxWidth().padding(start = RailWidth).focusRestorer(),
             contentPadding = PaddingValues(start = RowInset + 12.dp, end = 48.dp, top = 10.dp, bottom = 8.dp),
