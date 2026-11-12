@@ -2,6 +2,7 @@ name: Android TV
 # Rebuild Myo after the Android TV app-name change.
 
 on:
+  workflow_dispatch:
   pull_request:
     branches: [main]
     paths:
