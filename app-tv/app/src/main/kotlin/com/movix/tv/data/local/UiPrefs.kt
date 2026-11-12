@@ -24,6 +24,8 @@ object UiKeys {
     const val SCREENSAVER_MIN = "movix_tv_screensaver_min"
     /** Demander « Qui regarde ? » au lancement : "1" (défaut si le compte a plusieurs profils) ou "0". */
     const val PROFILE_PROMPT = "movix_tv_profile_prompt"
+    /** Réduire les animations de l’interface : "1" activé, absent désactivé. */
+    const val REDUCE_MOTION = "movix_tv_reduce_motion"
 }
 
 /** Couleurs d'accent proposées (crochets du focus, progression, boutons actifs). */
