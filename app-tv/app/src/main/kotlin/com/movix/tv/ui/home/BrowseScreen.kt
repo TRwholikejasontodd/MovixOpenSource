@@ -338,6 +338,7 @@ private fun MediaRow(
                     onClick = { onOpen(item) },
                     onFocused = { onFocus(item) },
                     rank = if (layout == RowLayout.RANK) index + 1 else null,
+                    contentDescription = item.title,
                     modifier = Modifier
                         .then(if (index == 0 && firstRequester != null) Modifier.focusRequester(firstRequester) else Modifier)
                         .then(if (item.key == restoreKey) Modifier.focusRequester(restoreRequester) else Modifier),
