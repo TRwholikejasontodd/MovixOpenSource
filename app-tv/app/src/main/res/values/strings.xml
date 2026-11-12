@@ -69,6 +69,10 @@
     <string name="settings_tmdb_ok">Clé acceptée.</string>
     <string name="settings_tmdb_bad">TMDB refuse cette clé. Vérifie-la puis réessaie.</string>
     <string name="settings_tmdb_network">TMDB ne répond pas. Vérifie la connexion.</string>
+    <string name="settings_accessibility_title">Accessibilité</string>
+    <string name="settings_accessibility_body">Adapte les effets visuels pour une navigation plus confortable à la télécommande.</string>
+    <string name="accessibility_reduce_motion">Réduire les animations</string>
+    <string name="accessibility_reduce_motion_body">Désactive les transitions et le mouvement de ressort du focus. Le changement s'applique immédiatement.</string>
     <string name="settings_about">À propos</string>
     <string name="settings_version">Version %s</string>
 
