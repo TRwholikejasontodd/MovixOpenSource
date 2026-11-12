@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Sonic Streaming</string>
+    <string name="app_name">Myo</string>
 
     <string name="nav_search">Recherche</string>
     <string name="nav_home">Accueil</string>
