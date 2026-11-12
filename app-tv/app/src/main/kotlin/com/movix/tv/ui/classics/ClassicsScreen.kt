@@ -68,14 +68,14 @@ private object PublicDomainCatalog {
         val query = "mediatype:movies AND licenseurl:(*publicdomain*)"
         val searchUrl = "https://archive.org/advancedsearch.php?q=" +
             URLEncoder.encode(query, "UTF-8") +
-            "&fl[]=identifier&fl[]=title&fl[]=year&fl[]=licenseurl&rows=40&page=1&output=json"
+            "&fl[]=identifier&fl[]=title&fl[]=year&fl[]=licenseurl&rows=20&page=1&output=json"
         val response = http.newCall(Request.Builder().url(searchUrl).header("User-Agent", "MovixTV/0.2 (public-domain-catalog)").build()).execute()
         val body = response.use { if (!it.isSuccessful) error("HTTP ${it.code}") else it.body?.string().orEmpty() }
         val docs = json.parseToJsonElement(body).jsonObject["response"]!!.jsonObject["docs"]!!.jsonArray
         coroutineScope { docs.map { doc -> async(Dispatchers.IO) {
             val fields = doc.jsonObject
             val id = fields["identifier"]?.jsonPrimitive?.content ?: return@async null
-            val title = fields["title"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
+            val title = fields["title"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() } ?: return@async null
             val year = fields["year"]?.jsonPrimitive?.contentOrNull.orEmpty()
             runCatching { resolve(id, title, year) }.getOrNull()
         } }.awaitAll().filterNotNull() }
