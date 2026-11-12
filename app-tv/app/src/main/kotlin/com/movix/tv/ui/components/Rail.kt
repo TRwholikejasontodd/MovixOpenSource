@@ -36,6 +36,9 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
@@ -146,6 +149,7 @@ fun Rail(
 private fun RailItem(entry: RailEntry, isCurrent: Boolean, expanded: Boolean, requester: FocusRequester?, onClick: () -> Unit) {
     val source = remember { MutableInteractionSource() }
     val focused by source.collectIsFocusedAsState()
+    val label = stringResource(entry.label)
     val fg = when {
         focused -> MovixColors.Ink
         isCurrent || expanded -> MovixColors.Text
@@ -163,7 +167,7 @@ private fun RailItem(entry: RailEntry, isCurrent: Boolean, expanded: Boolean, re
                 .background(if (focused) MovixColors.Text else MovixColors.Ink.copy(alpha = 0f), RoundedCornerShape(10.dp))
                 .semantics {
                     role = Role.Button
-                    contentDescription = stringResource(entry.label)
+                    contentDescription = label
                     selected = isCurrent
                 }
                 .clickable(interactionSource = source, indication = null, onClick = onClick)
@@ -172,7 +176,7 @@ private fun RailItem(entry: RailEntry, isCurrent: Boolean, expanded: Boolean, re
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Image(rememberVectorPainter(entry.icon), null, Modifier.size(20.dp), colorFilter = ColorFilter.tint(fg))
-            if (expanded) Text(stringResource(entry.label), style = MovixType.Button.copy(color = fg), maxLines = 1)
+            if (expanded) Text(label, style = MovixType.Button.copy(color = fg), maxLines = 1)
         }
     }
 }
