@@ -206,6 +206,7 @@ fun PillButton(
             .pressScale(press)
             .clip(RoundedCornerShape(999.dp))
             .background(bg)
+            .semantics(mergeDescendants = true) { role = Role.Button; contentDescription = text }
             .clickable(interactionSource = source, indication = null, onClick = onClick)
             .height(36.dp)
             .padding(horizontal = 16.dp),
@@ -243,6 +244,7 @@ fun TabPill(text: String, selected: Boolean, onClick: () -> Unit, onFocused: () 
             .pressScale(press)
             .clip(RoundedCornerShape(999.dp))
             .background(bg)
+            .semantics { role = Role.Button; contentDescription = text }
             .clickable(interactionSource = source, indication = null, onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 6.dp),
     )
