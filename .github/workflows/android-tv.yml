@@ -45,7 +45,12 @@ jobs:
       - name: Install Android platform and native toolchains
         run: |
           yes | sdkmanager --licenses >/dev/null
-          sdkmanager "platforms;android-37" "build-tools;37.0.0" "ndk;26.1.10909125" "cmake;3.22.1"
+          sdkmanager "platforms;android-37.0" "build-tools;37.0.0" "ndk;26.1.10909125" "cmake;3.22.1"
+          # Android SDK publishes API 37 under android-37.0 while compileSdk=37
+          # asks Gradle for android-37. Keep both names available to AGP.
+          if [ -d "$ANDROID_HOME/platforms/android-37.0" ] && [ ! -e "$ANDROID_HOME/platforms/android-37" ]; then
+            ln -s android-37.0 "$ANDROID_HOME/platforms/android-37"
+          fi
 
       - name: Run unit tests and build debug APKs
         working-directory: app-tv
