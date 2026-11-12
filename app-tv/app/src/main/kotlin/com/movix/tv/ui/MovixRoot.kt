@@ -43,6 +43,7 @@ import com.movix.tv.ui.components.firstVisibleSection
 import com.movix.tv.ui.components.railHiddenSections
 import com.movix.tv.ui.profiles.ProfilePickerScreen
 import kotlinx.coroutines.launch
+import com.movix.tv.ui.classics.ClassicsScreen
 import com.movix.tv.ui.details.DetailsScreen
 import com.movix.tv.ui.home.BrowseScreen
 import com.movix.tv.ui.home.WatchlistScreen
