@@ -375,6 +375,9 @@ private fun MediaRow(
                     onFocused = { onFocus(item) },
                     rank = if (layout == RowLayout.RANK) index + 1 else null,
                     contentDescription = item.title,
+                    title = item.title,
+                    width = 104.dp,
+                    height = 156.dp,
                     modifier = Modifier
                         .then(if (index == 0 && firstRequester != null) Modifier.focusRequester(firstRequester) else Modifier)
                         .then(if (item.key == restoreKey) Modifier.focusRequester(restoreRequester) else Modifier),
