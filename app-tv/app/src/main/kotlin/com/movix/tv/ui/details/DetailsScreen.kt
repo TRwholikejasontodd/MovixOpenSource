@@ -195,7 +195,7 @@ private fun DetailsContent(d: Details, onPlay: (PlayTarget) -> Unit, onOpen: (Me
                     item.type == MediaType.MOVIE && Library.progress(values, Library.movieProgressKey(item.id)) != null -> stringResource(R.string.action_resume)
                     else -> stringResource(R.string.action_play)
                 }
-                PillButton(playLabel, playMain, Modifier.focusRequester(playRequester), icon = MovixIcons.Play)
+                PillButton(playLabel, playMain, Modifier.focusRequester(playRequester), icon = MovixIcons.Play, primary = true)
                 PillButton(
                     stringResource(if (inList) R.string.action_watchlist_remove else R.string.action_watchlist_add),
                     onClick = {
