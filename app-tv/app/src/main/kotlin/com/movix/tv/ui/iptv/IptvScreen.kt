@@ -33,6 +33,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -137,7 +139,7 @@ fun IptvScreen(modifier: Modifier = Modifier) {
                 InputField(server, { server = it }, "https://serveur.example:8080")
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Box(Modifier.weight(1f)) { InputField(username, { username = it }, "Utilisateur") }
-                    Box(Modifier.weight(1f)) { InputField(password, { password = it }, "Mot de passe") }
+                    Box(Modifier.weight(1f)) { InputField(password, { password = it }, "Mot de passe", secret = true) }
                 }
                 ActionButton("Charger les chaînes", busy || server.isBlank() || username.isBlank() || password.isBlank()) {
                     scope.launch {
@@ -225,9 +227,10 @@ fun IptvScreen(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun InputField(value: String, onValue: (String) -> Unit, hint: String) {
+private fun InputField(value: String, onValue: (String) -> Unit, hint: String, secret: Boolean = false) {
     BasicTextField(
         value = value, onValueChange = onValue, singleLine = true,
+        visualTransformation = if (secret) PasswordVisualTransformation() else VisualTransformation.None,
         textStyle = TextStyle(color = Color.White, fontSize = 13.sp),
         modifier = Modifier.fillMaxWidth().background(Color(0xFF20232A), RoundedCornerShape(8.dp)).padding(horizontal = 12.dp, vertical = 11.dp),
         decorationBox = { inner ->
