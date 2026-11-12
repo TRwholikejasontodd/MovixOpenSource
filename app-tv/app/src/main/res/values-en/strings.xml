@@ -20,6 +20,7 @@
     <string name="resume_episode">Resume S%1$d E%2$d</string>
     <string name="resume_kicker">Resume season %1$d, episode %2$d</string>
     <string name="action_play">Play</string>
+    <string name="action_details">View details</string>
     <string name="action_resume">Resume</string>
     <string name="action_watchlist_add">My list</string>
     <string name="action_watchlist_remove">Remove from my list</string>
@@ -66,6 +67,10 @@
     <string name="settings_tmdb_ok">Key accepted.</string>
     <string name="settings_tmdb_bad">TMDB rejected this key. Check it and try again.</string>
     <string name="settings_tmdb_network">TMDB isn\'t responding. Check the connection.</string>
+    <string name="settings_accessibility_title">Accessibility</string>
+    <string name="settings_accessibility_body">Adjust visual effects for a more comfortable experience with the TV remote.</string>
+    <string name="accessibility_reduce_motion">Reduce motion</string>
+    <string name="accessibility_reduce_motion_body">Disables transitions and the focus spring animation. Changes apply immediately.</string>
     <string name="settings_about">About</string>
     <string name="settings_version">Version %s</string>
 
