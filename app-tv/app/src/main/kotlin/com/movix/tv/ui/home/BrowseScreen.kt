@@ -51,7 +51,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.mergeDescendants
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -294,7 +296,21 @@ private fun Hero(info: HeroInfo?, trailer: BannerTrailer) {
                     Brush.verticalGradient(0.55f to MovixColors.Ink.copy(alpha = 0f), 1f to MovixColors.Ink),
                 ),
             )
-            Column(Modifier.padding(start = ContentStart, top = 56.dp).width(560.dp)) {
+            Column(
+                Modifier
+                    .padding(start = ContentStart, top = 56.dp)
+                    .width(560.dp)
+                    .semantics(mergeDescendants = true) {
+                        contentDescription = buildString {
+                            append(h.title)
+                            append(", ")
+                            append(if (h.type == MediaType.TV) "série" else "film")
+                            h.rating?.let { append(", note ").append(String.format(Locale.FRANCE, "%.1f", it)).append(" sur 10") }
+                            h.year?.let { append(", ").append(it) }
+                            h.overview.takeIf { it.isNotBlank() }?.let { append(". ").append(it) }
+                        }
+                    },
+            ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Badge(stringResource(if (h.type == MediaType.TV) R.string.badge_tv else R.string.badge_movie))
                     if (h.kicker != null) Text(h.kicker, style = MovixType.Kicker)
