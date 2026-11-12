@@ -225,13 +225,13 @@ fun PillButton(
             .background(bg)
             .semantics(mergeDescendants = true) { role = Role.Button; contentDescription = text }
             .clickable(interactionSource = source, indication = null, onClick = onClick)
-            .height(36.dp)
-            .padding(horizontal = 16.dp),
+            .height(42.dp)
+            .padding(horizontal = 18.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         if (icon != null) {
-            Image(rememberVectorPainter(icon), null, Modifier.size(16.dp), colorFilter = ColorFilter.tint(fg))
+            Image(rememberVectorPainter(icon), null, Modifier.size(18.dp), colorFilter = ColorFilter.tint(fg))
         }
         Text(text, style = MovixType.Button.copy(color = fg), maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
@@ -263,7 +263,7 @@ fun TabPill(text: String, selected: Boolean, onClick: () -> Unit, onFocused: () 
             .background(bg)
             .semantics { role = Role.Button; contentDescription = text; this.selected = selected }
             .clickable(interactionSource = source, indication = null, onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 6.dp),
+            .padding(horizontal = 14.dp, vertical = 8.dp),
     )
 }
 
