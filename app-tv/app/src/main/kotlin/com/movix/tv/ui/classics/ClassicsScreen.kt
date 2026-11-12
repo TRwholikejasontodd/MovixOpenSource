@@ -45,6 +45,9 @@ import com.movix.tv.ui.player.PlayTarget
 import com.movix.tv.ui.theme.MovixColors
 import com.movix.tv.ui.theme.MovixType
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.contentOrNull
@@ -72,13 +75,13 @@ private object PublicDomainCatalog {
         val response = http.newCall(Request.Builder().url(searchUrl).header("User-Agent", "MovixTV/0.2 (public-domain-catalog)").build()).execute()
         val body = response.use { if (!it.isSuccessful) error("HTTP ${it.code}") else it.body?.string().orEmpty() }
         val docs = json.parseToJsonElement(body).jsonObject["response"]!!.jsonObject["docs"]!!.jsonArray
-        docs.mapNotNull { doc ->
+        coroutineScope { docs.map { doc -> async(Dispatchers.IO) {
             val fields = doc.jsonObject
             val id = fields["identifier"]?.jsonPrimitive?.content ?: return@mapNotNull null
             val title = fields["title"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
             val year = fields["year"]?.jsonPrimitive?.contentOrNull.orEmpty()
             runCatching { resolve(id, title, year) }.getOrNull()
-        }
+        } }.awaitAll().filterNotNull() }
     }
 
     private fun resolve(id: String, title: String, year: String): PublicFilm? {
