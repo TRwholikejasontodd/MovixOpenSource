@@ -138,6 +138,8 @@ fun BrowseScreen(
     // vite ne doit pas lancer le chargement d'une image de fond par carte.
     var focusedHero by remember { mutableStateOf<HeroInfo?>(null) }
     var hero by remember { mutableStateOf<HeroInfo?>(null) }
+    var heroAction by remember { mutableStateOf<(() -> Unit)?>(null) }
+    var heroActionLabel by remember { mutableStateOf(R.string.action_details) }
     LaunchedEffect(focusedHero) {
         if (hero == null) hero = focusedHero else { delay(HERO_DEBOUNCE_MS); hero = focusedHero }
         // Arrêté sur un titre : sa fiche se charge en avance.
@@ -199,7 +201,7 @@ fun BrowseScreen(
                 onAction = vm::load,
             )
             else -> {
-                Hero(hero, trailer)
+                Hero(hero, trailer, heroActionLabel, heroAction)
                 val density = LocalDensity.current
                 // La carte sélectionnée se cale sous le titre de sa rangée (≈ 36 dp), jamais dessus.
                 val columnSpec = remember(density) { PivotBringIntoViewSpec(with(density) { 36.dp.toPx() }) }
@@ -218,7 +220,12 @@ fun BrowseScreen(
                                         firstRequester = if (!focusedOnce) firstCard else null,
                                         restoreKey = lastKey,
                                         restoreRequester = restore,
-                                        onFocus = { key, h -> focusedHero = h; lastKey = key },
+                                        onFocus = { key, h, action ->
+                                            focusedHero = h
+                                            lastKey = key
+                                            heroAction = action
+                                            heroActionLabel = R.string.action_resume
+                                        },
                                         // « Reprendre » relance directement la lecture.
                                         onOpen = onResume,
                                     )
@@ -234,7 +241,12 @@ fun BrowseScreen(
                                     firstRequester = if (index == 0 && continueRow.isEmpty() && !focusedOnce) firstCard else null,
                                     restoreKey = lastKey?.removePrefix("${row.spec.id}|")?.takeIf { lastKey?.startsWith("${row.spec.id}|") == true },
                                     restoreRequester = restore,
-                                    onFocus = { focusedHero = it.hero(); lastKey = "${row.spec.id}|${it.key}" },
+                                    onFocus = {
+                                        focusedHero = it.hero()
+                                        lastKey = "${row.spec.id}|${it.key}"
+                                        heroAction = { onOpen(it) }
+                                        heroActionLabel = R.string.action_details
+                                    },
                                     onOpen = onOpen,
                                 )
                             }
@@ -259,7 +271,7 @@ fun BrowseScreen(
 }
 
 @Composable
-private fun Hero(info: HeroInfo?, trailer: BannerTrailer) {
+private fun Hero(info: HeroInfo?, trailer: BannerTrailer, actionLabel: Int, onAction: (() -> Unit)?) {
     // Mode léger : changement sec, jamais deux fonds plein écran en mémoire à la fois.
     val lowRam = com.movix.tv.ui.theme.LocalLowRam.current
     Crossfade(targetState = info, animationSpec = tween(if (lowRam) 0 else 220), label = "hero") { h ->
@@ -298,7 +310,7 @@ private fun Hero(info: HeroInfo?, trailer: BannerTrailer) {
             )
             Column(
                 Modifier
-                    .padding(start = ContentStart, top = 56.dp)
+                    .padding(start = ContentStart, top = 36.dp)
                     .width(560.dp)
                     .semantics(mergeDescendants = true) {
                         contentDescription = buildString {
@@ -324,6 +336,10 @@ private fun Hero(info: HeroInfo?, trailer: BannerTrailer) {
                 }
                 Spacer(Modifier.height(10.dp))
                 Text(h.overview, style = MovixType.Body, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.width(380.dp))
+                if (onAction != null) {
+                    Spacer(Modifier.height(8.dp))
+                    PillButton(stringResource(actionLabel), onAction)
+                }
             }
         }
     }
@@ -373,7 +389,7 @@ private fun ContinueRow(
     firstRequester: FocusRequester?,
     restoreKey: String?,
     restoreRequester: FocusRequester,
-    onFocus: (String, HeroInfo) -> Unit,
+    onFocus: (String, HeroInfo, () -> Unit) -> Unit,
     onOpen: (ContinueEntry) -> Unit,
 ) {
     val context = LocalContext.current
@@ -403,7 +419,7 @@ private fun ContinueRow(
                     subtitle = sub,
                     ratio = e.ratio,
                     onClick = { onOpen(e) },
-                    onFocused = { onFocus("continue|${e.key}", continueHero(e, context)) },
+                    onFocused = { onFocus("continue|${e.key}", continueHero(e, context)) { onOpen(e) } },
                     modifier = Modifier
                         .then(if (e == entries.first() && firstRequester != null) Modifier.focusRequester(firstRequester) else Modifier)
                         .then(if ("continue|${e.key}" == restoreKey) Modifier.focusRequester(restoreRequester) else Modifier),
