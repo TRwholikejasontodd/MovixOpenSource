@@ -24,8 +24,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
@@ -34,7 +32,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.tv.material3.Text
 import com.movix.tv.R
-import com.movix.tv.container
 import com.movix.tv.data.movix.Lang
 import com.movix.tv.data.movix.PlayRequest
 import com.movix.tv.data.movix.PlaybackSource
@@ -77,7 +74,7 @@ private object PublicDomainCatalog {
         val docs = json.parseToJsonElement(body).jsonObject["response"]!!.jsonObject["docs"]!!.jsonArray
         coroutineScope { docs.map { doc -> async(Dispatchers.IO) {
             val fields = doc.jsonObject
-            val id = fields["identifier"]?.jsonPrimitive?.content ?: return@mapNotNull null
+            val id = fields["identifier"]?.jsonPrimitive?.content ?: return@async null
             val title = fields["title"]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
             val year = fields["year"]?.jsonPrimitive?.contentOrNull.orEmpty()
             runCatching { resolve(id, title, year) }.getOrNull()
