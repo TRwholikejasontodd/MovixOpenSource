@@ -309,7 +309,7 @@ private fun DetailsExtras(d: Details, onOpen: (MediaItem) -> Unit, onVideo: (Vid
                 horizontalArrangement = Arrangement.spacedBy(18.dp),
             ) {
                 items(d.similar, key = { it.key }) { m ->
-                    PosterCard(imageUrl = TmdbImage.poster(m.posterPath), onClick = { onOpen(m) }, onFocused = {}, contentDescription = m.title)
+                    PosterCard(imageUrl = TmdbImage.poster(m.posterPath), onClick = { onOpen(m) }, onFocused = {}, contentDescription = m.title, title = m.title)
                 }
             }
         }
