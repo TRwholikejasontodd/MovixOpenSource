@@ -47,6 +47,7 @@ import com.movix.tv.ui.classics.ClassicsScreen
 import com.movix.tv.ui.details.DetailsScreen
 import com.movix.tv.ui.home.BrowseScreen
 import com.movix.tv.ui.home.WatchlistScreen
+import com.movix.tv.ui.iptv.IptvScreen
 import com.movix.tv.ui.nav.Navigator
 import com.movix.tv.ui.nav.Route
 import com.movix.tv.ui.nav.Section
