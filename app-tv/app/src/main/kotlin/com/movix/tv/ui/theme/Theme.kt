@@ -103,8 +103,18 @@ object MovixType {
  */
 val LocalLowRam = staticCompositionLocalOf { false }
 
+/** Préférence d'accessibilité : transitions instantanées et focus sans ressort. */
+val LocalReduceMotion = staticCompositionLocalOf { false }
+
 @Composable
-fun MovixTheme(lowRam: Boolean = false, content: @Composable () -> Unit) = CompositionLocalProvider(LocalLowRam provides lowRam) {
+fun MovixTheme(
+    lowRam: Boolean = false,
+    reduceMotion: Boolean = false,
+    content: @Composable () -> Unit,
+) = CompositionLocalProvider(
+    LocalLowRam provides lowRam,
+    LocalReduceMotion provides reduceMotion,
+) {
     MaterialTheme(
         colorScheme = darkColorScheme(
             background = MovixColors.Ink,
