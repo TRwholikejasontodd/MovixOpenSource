@@ -132,7 +132,7 @@ fun Rail(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Image(
-            painterResource(R.drawable.ic_movix_mark),
+            painterResource(R.drawable.ic_sonic_mark),
             contentDescription = null,
             modifier = Modifier.padding(start = 13.dp, bottom = 12.dp).size(34.dp),
         )
