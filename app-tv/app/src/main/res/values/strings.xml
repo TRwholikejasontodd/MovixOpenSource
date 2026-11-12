@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Movix</string>
+    <string name="app_name">Sonic Streaming</string>
 
     <string name="nav_search">Recherche</string>
     <string name="nav_home">Accueil</string>
     <string name="nav_movies">Films</string>
     <string name="nav_series">Séries</string>
     <string name="nav_anime">Animés</string>
+    <string name="nav_iptv">TV en direct</string>
     <string name="nav_classics">Classiques</string>
     <string name="nav_watchlist">Ma liste</string>
     <string name="nav_settings">Réglages</string>
