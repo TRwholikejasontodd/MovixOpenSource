@@ -1,4 +1,5 @@
 name: Android TV
+# Rebuild Myo after the Android TV app-name change.
 
 on:
   pull_request:
