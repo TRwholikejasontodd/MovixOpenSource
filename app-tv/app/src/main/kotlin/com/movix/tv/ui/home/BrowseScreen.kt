@@ -76,6 +76,7 @@ import com.movix.tv.ui.components.PosterCard
 import com.movix.tv.ui.components.TmdbImage
 import com.movix.tv.ui.nav.Section
 import com.movix.tv.ui.theme.MovixColors
+import com.movix.tv.ui.theme.LocalReduceMotion
 import com.movix.tv.ui.theme.MovixType
 import com.movix.tv.ui.update.UpdateBanner
 import kotlinx.coroutines.delay
@@ -274,11 +275,12 @@ fun BrowseScreen(
 private fun Hero(info: HeroInfo?, trailer: BannerTrailer, actionLabel: Int, onAction: (() -> Unit)?) {
     // Mode léger : changement sec, jamais deux fonds plein écran en mémoire à la fois.
     val lowRam = com.movix.tv.ui.theme.LocalLowRam.current
-    Crossfade(targetState = info, animationSpec = tween(if (lowRam) 0 else 220), label = "hero") { h ->
+    val reduceMotion = LocalReduceMotion.current
+    Crossfade(targetState = info, animationSpec = tween(if (lowRam || reduceMotion) 0 else 220), label = "hero") { h ->
         if (h == null) return@Crossfade
         val imageAlpha by animateFloatAsState(
             targetValue = if (trailer.shownFor == h.trailerKey) 0f else 1f,
-            animationSpec = tween(BANNER_FADE_MS),
+            animationSpec = tween(if (reduceMotion) 0 else BANNER_FADE_MS),
             label = "heroVideo",
         )
         Box(Modifier.fillMaxWidth().height(HeroHeight)) {
