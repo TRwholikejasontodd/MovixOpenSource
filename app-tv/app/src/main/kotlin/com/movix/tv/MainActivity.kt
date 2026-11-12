@@ -11,12 +11,16 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import com.movix.tv.ui.MovixRoot
 import com.movix.tv.ui.home.Screensaver
 import com.movix.tv.ui.home.ScreensaverHost
 import com.movix.tv.ui.theme.MovixTheme
+import com.movix.tv.data.local.UiKeys
+import com.movix.tv.data.local.UiPrefs
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -30,7 +34,11 @@ class MainActivity : ComponentActivity() {
         // ouvre directement le lecteur web (souris + bloqueur) sur cette page.
         val debugEmbed = intent?.getStringExtra("debug_embed")?.takeIf { BuildConfig.BUILD_TYPE != "release" && it.startsWith("https://") }
         setContent {
-            MovixTheme(lowRam = (application as MovixApp).lowRam) {
+            val uiValues by container.store.values.collectAsState(initial = emptyMap<String, String>())
+            MovixTheme(
+                lowRam = (application as MovixApp).lowRam,
+                reduceMotion = UiPrefs.flag(uiValues, UiKeys.REDUCE_MOTION, default = false),
+            ) {
                 Box(Modifier.fillMaxSize()) {
                     if (debugEmbed != null) com.movix.tv.ui.embed.EmbedView(debugEmbed, container.embedFilter, onClose = ::finish)
                     else MovixRoot(onExit = ::finish)
