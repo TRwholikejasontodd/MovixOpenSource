@@ -124,13 +124,14 @@ android {
         }
     }
 
-    // Myo TV cible uniquement les appareils Android TV ARM 64 bits.
-    // Un seul APK arm64-v8a est produit pour éviter les variantes inutiles.
+    // Deux APK Android TV, issus du même code et des mêmes ressources :
+    // armeabi-v7a pour les anciennes TV 32 bits ; arm64-v8a pour les TV 64 bits.
+    // Ne pas générer d'APK universel lourd inutile sur télévision.
     splits {
         abi {
             isEnable = true
             reset()
-            include("armeabi-v7a")
+            include("armeabi-v7a", "arm64-v8a")
             isUniversalApk = false
         }
     }
