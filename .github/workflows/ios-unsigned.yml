@@ -158,6 +158,9 @@ jobs:
       # "OS=" precis casse le job des qu'Apple retire un simulateur.
       - name: Select an available iPhone simulator
         id: simulator
+        # The branch build ships a device IPA; simulator compilation is reserved
+        # for tagged release QA to avoid compiling all React Native pods twice.
+        if: startsWith(github.ref, 'refs/tags/ios-v')
         run: |
           UDID="$(xcrun simctl list devices available \
             | grep -E '^[[:space:]]+iPhone' \
@@ -173,6 +176,7 @@ jobs:
       # Xcode, personne ne l'ouvre sur un runner, et il coute une passe d'index
       # sur chaque unite de traduction.
       - name: Compile for the simulator
+        if: startsWith(github.ref, 'refs/tags/ios-v')
         working-directory: app/ios
         run: |
           xcodebuild build \
