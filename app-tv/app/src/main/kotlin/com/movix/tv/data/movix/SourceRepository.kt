@@ -71,7 +71,7 @@ class SourceRepository(private val api: MovixApi, private val json: Json) {
     suspend fun load(
         req: PlayRequest,
         vipKey: String?,
-        perRouteMs: Long = 35_000,
+        perRouteMs: Long = 15_000,
         swiftflux: (suspend (index: Int) -> Pair<String, String?>?)? = null,
     ): List<PlaybackSource> = coroutineScope {
         routes(req).map { route ->
