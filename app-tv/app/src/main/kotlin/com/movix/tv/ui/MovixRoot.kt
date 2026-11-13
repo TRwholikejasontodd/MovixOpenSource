@@ -99,7 +99,7 @@ fun MovixRoot(onExit: () -> Unit) {
     // recrée pas le rail (il perdrait le focus). Mode léger : fondu seul.
     val lowRam = LocalLowRam.current
     if (!started) {
-        Box(Modifier.fillMaxSize().background(MovixColors.Ink))
+        MyoSplash(Modifier.fillMaxSize())
     } else if (picker != null) {
         ProfilePickerScreen(onDone = closePicker, onBack = closePicker)
     } else AnimatedContent(
