@@ -19,6 +19,7 @@ import androidx.media3.common.VideoSize
 import androidx.media3.common.text.CueGroup
 import androidx.media3.exoplayer.ExoPlaybackException
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.analytics.AnalyticsListener
 import com.movix.tv.AppContainer
 import com.movix.tv.data.local.Library
 import com.movix.tv.data.local.SubtitleStyle
@@ -36,6 +37,7 @@ import com.movix.tv.data.movix.SubtitleTrack
 import com.movix.tv.data.tmdb.Episode
 import com.movix.tv.data.tmdb.MediaType
 import com.movix.tv.player.Codecs
+import com.movix.tv.player.VideoFrameHealth
 import com.movix.tv.player.SubtitleCue
 import com.movix.tv.player.qualityLabel
 import com.movix.tv.player.Subtitles
@@ -212,6 +214,7 @@ class PlayerController(
     private var embeddedCueText: String? = null
     private val failed = HashSet<String>()
     private val hostHealth = SourceHealthTracker()
+    private val frameHealth = VideoFrameHealth()
     private var kindRetried = false
     private var loadJob: Job? = null
     private var startWatch: Job? = null
@@ -262,7 +265,14 @@ class PlayerController(
             val parsing = error.errorCode in PARSING_ERRORS
             val s = current ?: return
             if (error.errorCode in DECODER_ERRORS) {
-                // Pas de bascule automatique : on dit pourquoi et on laisse choisir.
+                // Décodeur impossible : tenter d'abord un autre hébergeur / codec
+                // plutôt que d'immobiliser le lecteur sur une erreur fatale.
+                if (SourceSelector.afterFailure(sources, failed + s.id, s) != null) {
+                    Log.w("MovixPlayer", "décodeur en échec, essai d'un autre lecteur")
+                    failOver()
+                    return
+                }
+                // Aucun repli : expliquer le format en cause et proposer le choix manuel.
                 val format = (error as? ExoPlaybackException)?.rendererFormat
                 val name = Codecs.displayName(format?.sampleMimeType, format?.codecs)
                 val video = format?.sampleMimeType?.let(Codecs::isVideo) ?: (error.errorCode != PlaybackException.ERROR_CODE_AUDIO_TRACK_INIT_FAILED)
@@ -302,8 +312,47 @@ class PlayerController(
         }
     }
 
+    /**
+     * Des images qui tombent en continu indiquent souvent une source trop
+     * exigeante à décoder, distincte d'une panne réseau (STATE_BUFFERING).
+     * L'ajustement des pistes HLS/DASH ne redémarre pas le lecteur et ne fait
+     * pas perdre la position ; une vraie bascule reste le dernier recours.
+     */
+    private val analyticsListener = object : AnalyticsListener {
+        override fun onDroppedVideoFrames(
+            eventTime: AnalyticsListener.EventTime,
+            droppedFrames: Int,
+            elapsedMs: Long,
+        ) {
+            if (phase != PlayerPhase.PLAYING || !player.playWhenReady || current == null) return
+            when (frameHealth.observe(droppedFrames, elapsedMs)) {
+                VideoFrameHealth.Action.NONE -> Unit
+                VideoFrameHealth.Action.LIMIT_1080P -> {
+                    Log.w("MovixPerf", "nombreuses images perdues : limitation à 1080p")
+                    player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
+                        .setMaxVideoSize(1920, 1080).setMaxVideoFrameRate(30).build()
+                }
+                VideoFrameHealth.Action.LIMIT_720P -> {
+                    Log.w("MovixPerf", "images toujours perdues : limitation à 720p")
+                    player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
+                        .setMaxVideoSize(1280, 720).setMaxVideoFrameRate(30).build()
+                }
+                VideoFrameHealth.Action.SWITCH_SOURCE -> {
+                    val s = current ?: return
+                    if (SourceSelector.afterFailure(sources, failed + s.id, s) != null) {
+                        Log.w("MovixPerf", "décodage toujours trop lent : autre source")
+                        failOver()
+                    } else {
+                        Log.w("MovixPerf", "décodage trop lent mais aucune autre source disponible")
+                    }
+                }
+            }
+        }
+    }
+
     init {
         player.addListener(listener)
+        player.addAnalyticsListener(analyticsListener)
         // Pistes de texte du flux coupées par défaut : seules les choisies s'affichent.
         player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
             .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true).build()
@@ -478,6 +527,7 @@ class PlayerController(
     fun cachedEpisodes(season: Int): List<Episode>? = seasonEpisodes[season]
 
     private fun play(source: PlaybackSource, startMs: Long) {
+        frameHealth.reset()
         current = source
         kindRetried = false
         formatIssue = null
@@ -1076,6 +1126,7 @@ class PlayerController(
         inFlight.values.forEach { it.cancel() }
         inFlight.clear()
         player.removeListener(listener)
+        player.removeAnalyticsListener(analyticsListener)
         player.release()
     }
 
