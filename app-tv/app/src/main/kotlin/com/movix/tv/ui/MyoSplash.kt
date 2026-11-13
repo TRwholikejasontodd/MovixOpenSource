@@ -1,6 +1,7 @@
 package com.movix.tv.ui
 
-import android.speech.tts.TextToSpeech
+import android.media.MediaPlayer
+import android.util.Log
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloat
@@ -40,10 +41,9 @@ import androidx.tv.material3.Text
 import com.movix.tv.ui.theme.Instrument
 import com.movix.tv.ui.theme.LocalLowRam
 import com.movix.tv.ui.theme.LocalReduceMotion
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import java.util.Locale
-import java.util.concurrent.atomic.AtomicBoolean
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.withContext
 import kotlin.math.PI
 import kotlin.math.sin
 
@@ -54,51 +54,52 @@ import kotlin.math.sin
  * Pas de vidéo, de chargement réseau supplémentaire, ni d'image plein écran.
  */
 @Composable
-fun MyoSplash(waitingForData: Boolean, modifier: Modifier = Modifier) {
+fun MyoSplash(waitingForData: Boolean, modifier: Modifier = Modifier, onIntroFinished: () -> Unit = {}) {
     val lowRam = LocalLowRam.current
     val reduceMotion = LocalReduceMotion.current
     val context = LocalContext.current
     val animation = remember { Animatable(if (reduceMotion) 1f else 0f) }
     val honorific = remember { MYO_HONORIFICS.random() }
-    val ttsReady = remember { AtomicBoolean(false) }
-    val ttsState = remember { mutableStateOf<TextToSpeech?>(null) }
-
+    // Le MP3 contient déjà la voix n°6, la musique ET l'impact final.
+    // Ne jamais lancer en plus TextToSpeech ou MyoSoundSignature.
+    // Préparation sur IO, hors du thread de composition de la télévision.
+    val audio = remember { mutableStateOf<MediaPlayer?>(null) }
+    DisposableEffect(Unit) {
+        onDispose {
+            audio.value?.let { player ->
+                runCatching { if (player.isPlaying) player.stop() }
+                runCatching { player.release() }
+            }
+            audio.value = null
+        }
+    }
     LaunchedEffect(reduceMotion) {
-        if (reduceMotion) animation.snapTo(1f)
-        else animation.animateTo(1f, tween(INTRO_DURATION_MS.toInt(), easing = LinearEasing))
+        if (reduceMotion) {
+            animation.snapTo(1f)
+            onIntroFinished()
+            return@LaunchedEffect
+        }
+        // L'animation ne démarre pas avant la bande-son : pas de décalage
+        // arbitraire de synthèse vocale lié au firmware TCL/Android.
+        val ready = withContext(Dispatchers.IO) {
+            runCatching {
+                MediaPlayer.create(context.applicationContext, com.movix.tv.R.raw.myo_intro_voice6)
+            }.onFailure {
+                Log.w("MyoIntro", "Impossible de préparer la piste MYO, intro muette", it)
+            }.getOrNull()
+        }
+        if (!isActive) {
+            ready?.release()
+            return@LaunchedEffect
+        }
+        audio.value = ready
+        runCatching { ready?.start() }.onFailure {
+            Log.w("MyoIntro", "Sortie sonore indisponible, animation maintenue", it)
+        }
+        animation.animateTo(1f, tween(INTRO_DURATION_MS.toInt(), easing = LinearEasing))
+        onIntroFinished()
     }
     val time = if (reduceMotion) 4f else 4f * animation.value
-
-    DisposableEffect(context) {
-        var disposed = false
-        val engine = TextToSpeech(context.applicationContext) { status ->
-            if (!disposed && status == TextToSpeech.SUCCESS) ttsReady.set(true)
-        }
-        ttsState.value = engine
-        onDispose {
-            disposed = true
-            ttsReady.set(false)
-            engine.stop()
-            engine.shutdown()
-            ttsState.value = null
-        }
-    }
-    LaunchedEffect(reduceMotion) {
-        if (reduceMotion) return@LaunchedEffect
-        delay(2_550)
-        launch { MyoSoundSignature.playSafely() }
-        delay(175)
-        // Le système TTS peut être lent ou absent : ne pas émettre une voix
-        // tardive une fois la page des profils affichée.
-        if (ttsReady.get()) runCatching {
-            ttsState.value?.apply {
-                language = Locale.FRENCH
-                setPitch(1.17f)
-                setSpeechRate(.94f)
-                speak("Myo", TextToSpeech.QUEUE_FLUSH, null, "myo_intro")
-            }
-        }
-    }
 
     val purple = Color(0xFF8B5CF6)
     val lavender = Color(0xFFC4B5FD)
@@ -224,7 +225,7 @@ private val MYO_HONORIFICS = listOf(
     "le Redoutable", "l’Intrépide", "le Lumineux", "le Vaillant",
     "le Mystérieux", "l’Incomparable", "le Fantastique",
 )
-internal const val INTRO_DURATION_MS = 4_000L
+internal const val INTRO_DURATION_MS = 4_100L
 
 internal fun myoEase(value: Float): Float {
     val t = value.coerceIn(0f, 1f)
