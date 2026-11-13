@@ -53,6 +53,15 @@ class SourceSelectorTest {
     }
 
     @Test
+    fun duplicateEmbedDoesNotDiscardAnotherPlayableStream() {
+        val accepted = src(Provider.FSTREAM, stream = "s1", embed = "https://voe.sx/e/1")
+        val rejected = src(Provider.VIPER, stream = "s2", embed = "https://voe.sx/e/1")
+        val independent = src(Provider.J1F, stream = "s2", embed = "https://vidmoly.to/e/2")
+        val sorted = SourceSelector.playable(listOf(independent, rejected, accepted))
+        assertEquals(listOf(accepted, independent), sorted)
+    }
+
+    @Test
     fun deviceOnlyListsUnresolvedEmbeds() {
         val all = listOf(
             src(Provider.FSTREAM, stream = "s1", embed = "https://voe.sx/e/1"),
