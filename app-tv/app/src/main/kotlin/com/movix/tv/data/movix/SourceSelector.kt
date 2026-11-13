@@ -118,6 +118,26 @@ object SourceSelector {
     private fun startable(s: PlaybackSource, isTv: Boolean) =
         s.provider != Provider.COFLIX && (isTv || s.provider != Provider.KISSKH)
 
+    /**
+     * En cas d'échec, éviter de réessayer immédiatement un lecteur du même
+     * hébergeur lorsqu'un autre hébergeur est disponible dans la même langue.
+     * Le classement initial (qualité, compatibilité, fournisseur) est conservé
+     * entre les candidats équivalents. Un hébergeur inconnu ne passe pas
+     * artificiellement devant un hébergeur identifié.
+     */
+    fun afterFailure(
+        playable: List<PlaybackSource>,
+        failedIds: Set<String>,
+        previous: PlaybackSource?,
+    ): PlaybackSource? {
+        val remaining = playable.filter { it.id !in failedIds }
+        if (remaining.isEmpty()) return null
+        val sameLanguage = previous?.language?.let { lang -> remaining.filter { it.language == lang } }.orEmpty()
+        val candidates = sameLanguage.ifEmpty { remaining }
+        val failedHost = previous?.host?.takeIf { it.isNotBlank() } ?: return candidates.first()
+        return candidates.firstOrNull { it.host != null && it.host != failedHost } ?: candidates.first()
+    }
+
     /** Hauteur équivalente (voir [HlsMaster.equivalentHeight]) à partir de laquelle une source est « HD ». */
     const val HD_HEIGHT = 720
 
