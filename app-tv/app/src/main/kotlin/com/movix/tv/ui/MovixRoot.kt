@@ -42,6 +42,7 @@ import com.movix.tv.ui.components.Rail
 import com.movix.tv.ui.components.firstVisibleSection
 import com.movix.tv.ui.components.railHiddenSections
 import com.movix.tv.ui.profiles.ProfilePickerScreen
+import com.movix.tv.ui.profiles.LocalProfileScreen
 import kotlinx.coroutines.launch
 import com.movix.tv.ui.classics.ClassicsScreen
 import com.movix.tv.ui.details.DetailsScreen
@@ -101,7 +102,11 @@ fun MovixRoot(onExit: () -> Unit) {
     if (!started) {
         MyoSplash(Modifier.fillMaxSize())
     } else if (picker != null) {
-        ProfilePickerScreen(onDone = closePicker, onBack = closePicker)
+        if (container.accounts.current == null) {
+            LocalProfileScreen(onDone = closePicker, onBack = closePicker)
+        } else {
+            ProfilePickerScreen(onDone = closePicker, onBack = closePicker)
+        }
     } else AnimatedContent(
         targetState = nav.current,
         contentKey = { r ->
@@ -191,7 +196,10 @@ fun MovixRoot(onExit: () -> Unit) {
             container.store.writeAll(mapOf(TvKeys.LINK_PROMPTED to "1"))
             nav.push(Route.Link)
         }
-        if (container.accounts.current != null && UiPrefs.flag(saved, UiKeys.PROFILE_PROMPT)) {
+        if (container.accounts.current == null) {
+            container.localProfiles.ensureDefault()
+            picker = ProfilePickerFrom.LOCAL
+        } else if (UiPrefs.flag(saved, UiKeys.PROFILE_PROMPT)) {
             // Profils gardés sur la télé : l'écran s'ouvre sans attendre le réseau.
             // Sans liste encore (première fois), elle est seulement rapatriée :
             // l'écran viendra au prochain lancement plutôt qu'en pleine navigation.
@@ -213,4 +221,4 @@ fun MovixRoot(onExit: () -> Unit) {
 }
 
 /** D'où vient « Qui regarde ? ». */
-private enum class ProfilePickerFrom { LAUNCH, SETTINGS }
+private enum class ProfilePickerFrom { LAUNCH, SETTINGS, LOCAL }
