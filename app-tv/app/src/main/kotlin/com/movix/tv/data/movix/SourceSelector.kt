@@ -17,6 +17,7 @@ object SourceSelector {
     private val LANG_RANK = mapOf(Lang.VF to 0, Lang.VOSTFR to 1, Lang.UNKNOWN to 2, Lang.VO to 3)
 
     private val PROVIDER_RANK = listOf(
+        Provider.AUTHORIZED,
         Provider.FSTREAM, Provider.SWIFTFLUX, Provider.WIFLIX, Provider.VIPER, Provider.J1F, Provider.OMEGA, Provider.LINKS,
         Provider.SWIFTFLOW, Provider.VOX, Provider.PURSTREAM, Provider.KISSKH, Provider.COFLIX,
     )
