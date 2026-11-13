@@ -117,12 +117,16 @@ class SourceSelectorTest {
     }
 
     @Test
-    fun routeOrderKeptAmongHdAndWithoutProbe() {
+    fun bestQualityWinsAmongHdButRouteOrderBreaksTies() {
         val a = hls(Provider.FSTREAM, "vidzy")
         val b = hls(Provider.WIFLIX, "voe")
         val ranked = SourceSelector.playable(listOf(b, a))
+        // Sans information sur la qualité, on garde l'ordre habituel des routes.
         assertEquals(ranked, SourceSelector.byQuality(ranked, emptyMap()))
-        assertEquals(ranked, SourceSelector.byQuality(ranked, r(a to 720, b to 1080)))
+        // Si deux sources HD sont disponibles, la meilleure résolution prime.
+        assertEquals(listOf(b, a), SourceSelector.byQuality(ranked, r(a to 720, b to 1080)))
+        // Si les qualités sont égales, les priorités des routes restent stables.
+        assertEquals(ranked, SourceSelector.byQuality(ranked, r(a to 1080, b to 1080)))
     }
 
     @Test
