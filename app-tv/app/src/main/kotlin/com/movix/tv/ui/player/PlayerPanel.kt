@@ -157,11 +157,11 @@ private fun MainPanel(c: PlayerController, page: PanelPage, onPage: (PanelPage) 
     // De retour sur la liste principale, le focus revient sur la ligne qu'on vient de quitter.
     var lastRoot by remember { mutableStateOf(PanelPage.SOURCE) }
     if (page != PanelPage.MAIN) lastRoot = page.root
-    val rows = listOf(
+    val rows = listOfNotNull(
         PanelPage.SOURCE to (c.current?.label ?: "—"),
         PanelPage.QUALITY to (c.selectedVideo?.label ?: c.qualityText ?: context.getString(R.string.player_auto)),
         PanelPage.AUDIO to (c.selectedAudio?.display(context, audioFallback(c)) ?: context.getString(R.string.player_auto)),
-        PanelPage.SMART_SOUND to (if (c.audioEffectAvailable) c.audioMode.title else "Indisponible"),
+        PanelPage.SMART_SOUND.takeIf { c.audioEffectAvailable }?.let { it to c.audioMode.title },
         PanelPage.SUBTITLES to subtitleLabel(c, context),
         PanelPage.SUBTITLE_STYLE to "${percentLabel(style.size, context)}, ${colorLabel(style.color, context)}",
         PanelPage.OFFSET to offsetLabel(c.subtitleOffsetMs),
