@@ -213,6 +213,10 @@ class PlayerController(
     private var kindRetried = false
     private var loadJob: Job? = null
     private var startWatch: Job? = null
+    private var stallWatch: Job? = null
+    private var tickJob: Job? = null
+    /** Un blocage après le premier démarrage doit déclencher un repli, pas une attente infinie. */
+    private var readyOnCurrentSource = false
     private var subsJob: Job? = null
     private var noticeJob: Job? = null
     private var segmentsRequested = false
@@ -227,15 +231,26 @@ class PlayerController(
 
         override fun onPlaybackStateChanged(state: Int) {
             buffering = state == Player.STATE_BUFFERING || state == Player.STATE_IDLE
-            if (state == Player.STATE_READY) {
-                startWatch?.cancel()
-                durationMs = player.duration.coerceAtLeast(0)
-                onReady()
+            when (state) {
+                Player.STATE_READY -> {
+                    readyOnCurrentSource = true
+                    startWatch?.cancel()
+                    stallWatch?.cancel()
+                    durationMs = player.duration.coerceAtLeast(0)
+                    onReady()
+                }
+                Player.STATE_BUFFERING -> if (readyOnCurrentSource) watchForStall()
+                else -> stallWatch?.cancel()
             }
             if (state == Player.STATE_ENDED) {
                 saveProgress(ended = true)
                 if (next != null && UiPrefs.flag(container.store.values.value, UiKeys.AUTOPLAY_NEXT)) autoAdvance()
             }
+        }
+
+        override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+            if (!playWhenReady) stallWatch?.cancel()
+            else if (player.playbackState == Player.STATE_BUFFERING && readyOnCurrentSource) watchForStall()
         }
 
         override fun onPlayerError(error: PlaybackException) {
@@ -288,7 +303,7 @@ class PlayerController(
         // Pistes de texte du flux coupées par défaut : seules les choisies s'affichent.
         player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
             .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true).build()
-        scope.launch { tick() }
+        tickJob = scope.launch { tick() }
         load()
     }
 
@@ -303,6 +318,9 @@ class PlayerController(
         loadJob?.cancel()
         deviceJob?.cancel()
         extractAllJob?.cancel()
+        startWatch?.cancel()
+        stallWatch?.cancel()
+        readyOnCurrentSource = false
         phase = PlayerPhase.LOADING
         loadingText = com.movix.tv.R.string.player_loading
         extracted.clear(); inFlight.values.forEach { it.cancel() }; inFlight.clear(); extractingId = null
@@ -467,20 +485,52 @@ class PlayerController(
 
     private fun prepare(source: PlaybackSource, startMs: Long) {
         pendingStartMs = startMs
+        // Repartir avec un délai complet pour la nouvelle source (ou son autre format).
+        readyOnCurrentSource = false
+        stallWatch?.cancel()
         player.setMediaSource(container.playerEngine.mediaSource(source.streamUrl!!, source.kind, source.headers), startMs)
         player.prepare()
         player.playWhenReady = true
         player.setPlaybackSpeed(speed)
         startWatch?.cancel()
         // 45 s sans démarrer : source suivante (même règle que le lecteur du site).
+        val watchedId = source.id
         startWatch = scope.launch {
             delay(45_000)
-            if (player.playbackState != Player.STATE_READY) failOver()
+            if (current?.id == watchedId && phase == PlayerPhase.PLAYING &&
+                player.playWhenReady && player.playbackState != Player.STATE_READY
+            ) failOver()
+        }
+    }
+
+    /**
+     * Un flux peut démarrer normalement puis cesser de fournir des segments sans
+     * émettre d'erreur Media3. Après 30 s de rebuffering, on essaie la source
+     * suivante et on conserve la position. Aucune bascule pendant une pause.
+     */
+    private fun watchForStall() {
+        stallWatch?.cancel()
+        val watchedId = current?.id ?: return
+        if (phase != PlayerPhase.PLAYING || !player.playWhenReady ||
+            webSource != null || formatIssue != null
+        ) return
+        stallWatch = scope.launch {
+            delay(30_000)
+            if (current?.id == watchedId && readyOnCurrentSource &&
+                phase == PlayerPhase.PLAYING && player.playWhenReady &&
+                player.playbackState == Player.STATE_BUFFERING &&
+                webSource == null && formatIssue == null
+            ) {
+                Log.w("MovixPlayer", "flux bloqué après démarrage : ${current?.label}, repli")
+                failOver()
+            }
         }
     }
 
     private fun failOver() {
         val s = current ?: return
+        stallWatch?.cancel()
+        readyOnCurrentSource = false
         failed += s.id
         val position = player.currentPosition.takeIf { it > 0 } ?: pendingStartMs
         val nextSource = sources.firstOrNull { it.id !in failed }
@@ -1010,8 +1060,16 @@ class PlayerController(
     fun release() {
         saveProgress()
         startWatch?.cancel()
+        stallWatch?.cancel()
+        tickJob?.cancel()
         loadJob?.cancel()
+        deviceJob?.cancel()
         extractAllJob?.cancel()
+        subsJob?.cancel()
+        translateJob?.cancel()
+        noticeJob?.cancel()
+        inFlight.values.forEach { it.cancel() }
+        inFlight.clear()
         player.removeListener(listener)
         player.release()
     }
