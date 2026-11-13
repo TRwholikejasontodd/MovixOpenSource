@@ -211,6 +211,7 @@ class PlayerController(
     private var externalCues: List<SubtitleCue> = emptyList()
     private var embeddedCueText: String? = null
     private val failed = HashSet<String>()
+    private val hostHealth = SourceHealthTracker()
     private var kindRetried = false
     private var loadJob: Job? = null
     private var startWatch: Job? = null
