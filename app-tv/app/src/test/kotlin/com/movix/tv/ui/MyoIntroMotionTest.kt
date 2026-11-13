@@ -5,8 +5,10 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MyoIntroMotionTest {
-    @Test fun introLastsFourSeconds() {
-        assertEquals(4_000L, INTRO_DURATION_MS)
+    @Test fun introCoversApprovedAudioAndFinishesNearFourSeconds() {
+        // MP3 validé : 4,056 secondes. L'animation laisse une marge de 44 ms
+        // avant la navigation pour éviter de couper l'impact final.
+        assertEquals(4_100L, INTRO_DURATION_MS)
     }
     @Test fun interpolationIsMonotonicAndBounded() {
         var previous = -1f
