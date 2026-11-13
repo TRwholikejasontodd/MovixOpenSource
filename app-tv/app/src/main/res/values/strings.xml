@@ -134,6 +134,7 @@
     <string name="player_source">Source</string>
     <string name="player_quality">Qualité</string>
     <string name="player_audio">Audio</string>
+    <string name="myo_audio_title">Son intelligent</string>
     <string name="player_subtitles">Sous-titres</string>
     <string name="player_offset">Décalage</string>
     <string name="player_speed">Vitesse</string>
