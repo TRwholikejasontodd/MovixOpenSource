@@ -72,7 +72,7 @@ class SmartAudio {
                     AudioMode.NIGHT -> listOf(3.2f, -30f, 8f, 290f, -8f)
                     AudioMode.OFF -> listOf(1f, 0f, 30f, 150f, 0f)
                 }
-                for (channel in 0 until cfg.channelCount) {
+                for (channel in 0 until processor.channelCount) {
                     if (mbc && processor.getMbcByChannelIndex(channel).bandCount > 0) {
                         val band = processor.getMbcBandByChannelIndex(channel, 0)
                         band.isEnabled = true
