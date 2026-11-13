@@ -135,7 +135,11 @@ class PlayerEngine(private val context: Context, private val http: OkHttpClient,
     fun mediaSource(url: String, kind: StreamKind, headers: Map<String, String> = emptyMap()): MediaSource {
         val item = MediaItem.Builder()
             .setUri(url)
-            .setMimeType(if (kind == StreamKind.HLS) MimeTypes.APPLICATION_M3U8 else null)
+            .setMimeType(when (kind) {
+                StreamKind.HLS -> MimeTypes.APPLICATION_M3U8
+                StreamKind.DASH -> MimeTypes.APPLICATION_MPD
+                StreamKind.FILE -> null
+            })
             .build()
         return DefaultMediaSourceFactory(dataSourceFactory(headers)).createMediaSource(item)
     }
