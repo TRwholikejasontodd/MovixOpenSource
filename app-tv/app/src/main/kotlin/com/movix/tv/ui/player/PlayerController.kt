@@ -536,6 +536,7 @@ class PlayerController(
         stallWatch?.cancel()
         readyOnCurrentSource = false
         failed += s.id
+        hostHealth.recordFailure(s.host)
         val position = player.currentPosition.takeIf { it > 0 } ?: pendingStartMs
         val nextSource = SourceSelector.afterFailure(sources, failed, s)
         showNotice(com.movix.tv.R.string.player_source_failed)
