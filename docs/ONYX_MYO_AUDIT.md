@@ -18,6 +18,20 @@ Le dépôt public `warbix-prog/ONYX` consultable à cette date ne contient que l
 - La classe `PlayerTvFragment` expose 105 noms de méthodes dans la table DEX, dont une grande majorité obscurcie (`A`, `B0`, etc.). La simple présence des noms ne permet pas de reconstituer l'algorithme de choix de source.
 - Bibliothèques vidéo natives (avcodec/avutil et modules complémentaires).
 
+## Deuxième passe de reverse engineering DEX (sans décompilateur Java)
+
+Le parsing direct de l'APK a indexé 3 406 définitions de classes dans l'espace de noms `com.streamflixreborn.streamflix`, avec 23 319 implémentations de méthodes. Contrairement à une simple recherche de chaînes, cette passe lit les définitions des méthodes et certaines références d'instructions du bytecode.
+
+Observations de haute confiance :
+- `Provider` définit `getServers` et `getVideo` : séparation entre découverte des liens et obtention d'une vidéo.
+- `Extractor$Companion` contient `healthScore`, `recordFailure`, `recordSuccess`, `brokenServerNames`, `peekCachedVideo` et `invalidateCache`.
+- `Extractor$Companion$ServerHealth` expose `failureCount`, `firstFailureAtMs` et `brokenUntilMs` : une pénalisation des serveurs en échec est représentée dans les données.
+- `PlayerTvFragment` référence Media3/ExoPlayer, la configuration de Cronet/OkHttp, une politique de chargement et le buffer.
+
+**Limite :** les méthodes cruciales du lecteur sont en partie obscurcies. Sans JADX/Apktool (non installés, téléchargement réseau indisponible), ce n'est toujours pas une décompilation complète et la stratégie exacte de classement d'Onyx n'est pas établie. Il serait incorrect de prétendre avoir recopié fidèlement son moteur.
+
+Myo reprend donc les *principes* vérifiables par une implémentation Kotlin autonome : bascule automatique, préférence pour un autre hébergeur après erreur, puis un coupe-circuit de dix minutes après deux erreurs rapprochées d'un même hébergeur. Cette logique est couverte par des tests JVM. Elle concerne des flux légalement accessibles et n'implique pas la redistribution du bytecode tiers.
+
 ## Correspondances et travaux dans Myo
 
 | Principe visé | Composant Myo existant | État |
