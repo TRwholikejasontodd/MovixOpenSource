@@ -15,6 +15,8 @@ import com.movix.tv.data.movix.MovixApi
 import com.movix.tv.data.movix.SourceRepository
 import com.movix.tv.data.movix.StreamProbe
 import com.movix.tv.data.movix.VipManager
+import com.movix.tv.data.sources.AuthorizedSourceProvider
+import com.movix.tv.data.sources.AuthorizedSourceRecord
 import com.movix.tv.data.sources.MovixCompatibilityProvider
 import com.movix.tv.data.sources.SourceGateway
 import com.movix.tv.data.net.ApiHostInterceptor
@@ -96,8 +98,24 @@ class AppContainer(context: Context) {
     val accounts = AccountManager(context.applicationContext, store, accountApi, vip, json)
     val sync = SyncManager(appScope, store, accountApi, accounts, json)
     val swiftflux = SwiftFluxClient(http, json, movix.baseUrl)
-    /** MYO entry point for modular sources. Legacy Movix remains only as a compatibility provider. */
-    val sourceGateway = SourceGateway(listOf(MovixCompatibilityProvider(sources, swiftflux)))
+    /**
+     * Independently owned source manifest is deliberately empty until rights are
+     * confirmed. A bad manifest never blocks launch or legacy playback.
+     */
+    private val authorizedSourceRecords: List<AuthorizedSourceRecord> = runCatching {
+        context.assets.open("myo-authorized-sources.json").bufferedReader().use { reader ->
+            json.decodeFromString<List<AuthorizedSourceRecord>>(reader.readText())
+        }
+    }.getOrElse { error ->
+        android.util.Log.w("MyoSources", "Invalid authorized sources manifest", error)
+        emptyList()
+    }
+
+    /** A non-Movix provider can now run alongside the legacy compatibility adapter. */
+    val sourceGateway = SourceGateway(listOf(
+        AuthorizedSourceProvider(authorizedSourceRecords),
+        MovixCompatibilityProvider(sources, swiftflux),
+    ))
     /** Rangée « Reprendre » lue sur le serveur (historique en base). */
     val history = HistoryApi(http, json, movix.baseUrl)
 
