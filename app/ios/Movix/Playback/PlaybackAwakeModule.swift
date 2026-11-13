@@ -1,5 +1,6 @@
 import Foundation
 import UIKit
+import AVFoundation
 
 @objc(PlaybackAwake)
 final class PlaybackAwakeModule: NSObject {
@@ -7,6 +8,7 @@ final class PlaybackAwakeModule: NSObject {
   private let setIdleTimerDisabled: (Bool) -> Void
   private var owners = Set<String>()
   private var invalidated = false
+  private var myoIntroPlayer: AVAudioPlayer?
 
   override init() {
     setIdleTimerDisabled = { UIApplication.shared.isIdleTimerDisabled = $0 }
@@ -34,6 +36,37 @@ final class PlaybackAwakeModule: NSObject {
     setOwner(owner, active: active)
   }
 
+  // Fixed MYO Premium soundtrack supplied by the Android TV-approved
+  // voice 6 master. Same recording on every supported iPhone.
+  @objc func playMyoIntro() {
+    let play = {
+      guard !self.invalidated,
+        let url = Bundle.main.url(forResource: "myo_intro_voice6", withExtension: "mp3")
+      else { return }
+      do {
+        self.myoIntroPlayer?.stop()
+        let player = try AVAudioPlayer(contentsOf: url)
+        player.volume = 0.75
+        player.prepareToPlay()
+        self.myoIntroPlayer = player
+        player.play()
+      } catch {
+        NSLog("[MYO] Intro audio unavailable: %@", String(describing: error))
+      }
+    }
+    if Thread.isMainThread { play() }
+    else { DispatchQueue.main.async(execute: play) }
+  }
+
+  @objc func stopMyoIntro() {
+    let stop = {
+      self.myoIntroPlayer?.stop()
+      self.myoIntroPlayer = nil
+    }
+    if Thread.isMainThread { stop() }
+    else { DispatchQueue.main.async(execute: stop) }
+  }
+
   @objc func invalidate() {
     guard Thread.isMainThread else {
       DispatchQueue.main.async {
@@ -44,6 +77,8 @@ final class PlaybackAwakeModule: NSObject {
     guard !invalidated else { return }
     invalidated = true
     owners.removeAll()
+    myoIntroPlayer?.stop()
+    myoIntroPlayer = nil
     setIdleTimerDisabled(false)
   }
 
