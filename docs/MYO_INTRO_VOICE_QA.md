@@ -20,7 +20,11 @@ L'introduction doit durer 4 secondes, avec la même vidéo de construction vecto
 7. Vérifie que chargement initial et profils fonctionnent sans attendre la piste sonore et que le mode « réduire les animations » reste respecté.
 8. Passe `:app:testDebugUnitTest` et `:app:assembleDebug`. Échec CI = refus.
 
-**État actuel (bloquant) :** la version Android TV sur la branche `feature/android-tv-premium` utilise encore `TextToSpeech` dans `MyoSplash.kt`. La voix 6 **n'est pas encore empaquetée** ; sa fidélité ne peut pas être garantie. La génération externe est à l'état de démonstration uniquement.
+**État au 13 novembre 2026 :** la version Android TV embarque désormais le MP3 `app/src/main/res/raw/myo_intro_voice6.mp3`, fichier de 14 564 octets contenant la voix 6 et l'impact final. `MyoSplash.kt` le lit via `MediaPlayer` au lieu de `TextToSpeech` et de l'ancien jingle séparé. Le hash SHA-256 `2f7344884618244b5b5ac185d0bf5887115638620a3d9433fe699821e7e03c39` est vérifié pendant `preBuild`.
+
+**Vérification de livraison :** GitHub Actions n°226 (<https://github.com/TRwholikejasontodd/MovixOpenSource/actions/runs/43499887710>) a réussi tests JVM et compilation Android TV. L'APK `app-armeabi-v7a-debug.apk` téléchargé de l'artefact `myo-tv-armv7-apk` a été ouvert et contrôlé indépendamment : entrée `res/raw/myo_intro_voice6.mp3`, 14 564 octets, SHA-256 identique au MP3 approuvé, ABI native `armeabi-v7a`. **Verdict d'intégrité du fichier et de compilation : ACCEPTÉ.**
+
+**Verdict sur TCL réelle : NON TESTABLE dans cet environnement.** Le rendu sonore, la synchronisation perçue (latence du circuit audio), l'utilisation mémoire et le parcours télécommande nécessitent une vérification sur appareil. Aucun sous-agent indépendant n'a effectué ces tests physiques.
 
 ## Preuves disponibles
 - Vidéo de référence voix 6 : `05_MYO_enfantine_aerienne.mp4` (4 secondes).
