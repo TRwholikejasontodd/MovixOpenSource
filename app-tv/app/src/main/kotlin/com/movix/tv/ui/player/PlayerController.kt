@@ -60,7 +60,13 @@ import okhttp3.Request
 
 /** Ce que le lecteur ouvre : la demande de sources et de quoi titrer l'écran. */
 @Immutable
-data class PlayTarget(val request: PlayRequest, val title: String, val backdropPath: String?, val directSource: PlaybackSource? = null)
+data class PlayTarget(
+    val request: PlayRequest,
+    val title: String,
+    val backdropPath: String?,
+    val directSource: PlaybackSource? = null,
+    val synopsis: String? = null,
+)
 
 enum class PlayerPhase { LOADING, NEED_VIP, NO_SOURCE, PLAYING }
 
@@ -149,6 +155,9 @@ class PlayerController(
 
     var isPlaying by mutableStateOf(false); private set
     var buffering by mutableStateOf(true); private set
+    /** La première source est préparée / bufferisée, sans démarrer automatiquement. */
+    var readyToLaunch by mutableStateOf(false); private set
+    private var userLaunchedPlayback = false
     var positionMs by mutableLongStateOf(0L); private set
     var durationMs by mutableLongStateOf(0L); private set
     var bufferedMs by mutableLongStateOf(0L); private set
@@ -244,6 +253,7 @@ class PlayerController(
                     startWatch?.cancel()
                     stallWatch?.cancel()
                     durationMs = player.duration.coerceAtLeast(0)
+                    readyToLaunch = !userLaunchedPlayback
                     if (preparedAtMs > 0) {
                         Log.i("MovixPerf", "media_ready_ms=${SystemClock.elapsedRealtime() - preparedAtMs}, video=${videoHeight}p")
                     }
@@ -397,6 +407,8 @@ class PlayerController(
         stallWatch?.cancel()
         readyOnCurrentSource = false
         phase = PlayerPhase.LOADING
+        userLaunchedPlayback = false
+        readyToLaunch = false
         loadingText = com.movix.tv.R.string.player_loading
         extracted.clear(); inFlight.values.forEach { it.cancel() }; inFlight.clear(); extractingId = null
         sources = emptyList(); deviceSources = emptyList(); webSources = emptyList(); webSource = null; current = null
@@ -558,6 +570,7 @@ class PlayerController(
 
     private fun play(source: PlaybackSource, startMs: Long) {
         frameHealth.reset()
+        readyToLaunch = false
         current = source
         kindRetried = false
         formatIssue = null
@@ -575,7 +588,9 @@ class PlayerController(
         stallWatch?.cancel()
         player.setMediaSource(container.playerEngine.mediaSource(source.streamUrl!!, source.kind, source.headers), startMs)
         player.prepare()
-        player.playWhenReady = true
+        // Exige une confirmation sur l'écran de préparation pour le premier
+        // lancement. Une panne APRÈS lancement conserve le comportement auto.
+        player.playWhenReady = userLaunchedPlayback
         player.setPlaybackSpeed(speed)
         startWatch?.cancel()
         // 45 s sans démarrer : source suivante (même règle que le lecteur du site).
@@ -583,7 +598,7 @@ class PlayerController(
         startWatch = scope.launch {
             delay(45_000)
             if (current?.id == watchedId && phase == PlayerPhase.PLAYING &&
-                player.playWhenReady && player.playbackState != Player.STATE_READY
+                player.playbackState != Player.STATE_READY
             ) failOver()
         }
     }
@@ -831,7 +846,19 @@ class PlayerController(
 
     // ---------- commandes ----------
 
+    /** Confirmation explicite, uniquement lorsque Media3 a fini la préparation. */
+    fun launchPlayback() {
+        if (!readyToLaunch || player.playbackState != Player.STATE_READY) return
+        userLaunchedPlayback = true
+        readyToLaunch = false
+        player.playWhenReady = true
+    }
+
     fun togglePlay() {
+        if (readyToLaunch) {
+            launchPlayback()
+            return
+        }
         if (player.playbackState == Player.STATE_ENDED) player.seekTo(0)
         player.playWhenReady = !player.playWhenReady
     }
