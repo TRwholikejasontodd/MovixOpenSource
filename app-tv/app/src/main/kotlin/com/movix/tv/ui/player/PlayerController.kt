@@ -1,6 +1,7 @@
 package com.movix.tv.ui.player
 
 import android.util.Log
+import android.os.SystemClock
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
@@ -227,6 +228,7 @@ class PlayerController(
     private var segmentsRequested = false
     private var metaWritten = false
     private var pendingStartMs = 0L
+    private var preparedAtMs = 0L
 
     private val listener = object : Player.Listener {
         override fun onIsPlayingChanged(playing: Boolean) {
@@ -242,6 +244,9 @@ class PlayerController(
                     startWatch?.cancel()
                     stallWatch?.cancel()
                     durationMs = player.duration.coerceAtLeast(0)
+                    if (preparedAtMs > 0) {
+                        Log.i("MovixPerf", "media_ready_ms=${SystemClock.elapsedRealtime() - preparedAtMs}, video=${videoHeight}p")
+                    }
                     onReady()
                 }
                 Player.STATE_BUFFERING -> {
@@ -319,6 +324,21 @@ class PlayerController(
      * pas perdre la position ; une vraie bascule reste le dernier recours.
      */
     private val analyticsListener = object : AnalyticsListener {
+        override fun onVideoDecoderInitialized(
+            eventTime: AnalyticsListener.EventTime,
+            decoderName: String,
+            initializedTimestampMs: Long,
+            initializationDurationMs: Long,
+        ) {
+            // Pour distinguer un décodage matériel du décodage logiciel.
+            Log.i("MovixPerf", "video_decoder=$decoderName init_ms=$initializationDurationMs")
+        }
+
+        override fun onVideoCodecError(eventTime: AnalyticsListener.EventTime, videoCodecError: Exception) {
+            // Media3 peut récupérer cette erreur : ne pas relancer ici.
+            Log.w("MovixPerf", "video_codec_error=${videoCodecError.javaClass.simpleName}", videoCodecError)
+        }
+
         override fun onDroppedVideoFrames(
             eventTime: AnalyticsListener.EventTime,
             droppedFrames: Int,
@@ -549,6 +569,7 @@ class PlayerController(
 
     private fun prepare(source: PlaybackSource, startMs: Long) {
         pendingStartMs = startMs
+        preparedAtMs = SystemClock.elapsedRealtime()
         // Repartir avec un délai complet pour la nouvelle source (ou son autre format).
         readyOnCurrentSource = false
         stallWatch?.cancel()
