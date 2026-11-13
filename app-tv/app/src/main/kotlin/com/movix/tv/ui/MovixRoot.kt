@@ -106,7 +106,7 @@ fun MovixRoot(onExit: () -> Unit) {
     // recrée pas le rail (il perdrait le focus). Mode léger : fondu seul.
     val lowRam = LocalLowRam.current
     if (!started || !introFinished) {
-        MyoSplash(Modifier.fillMaxSize())
+        MyoSplash(waitingForData = !started, modifier = Modifier.fillMaxSize())
     } else if (picker != null) {
         if (container.accounts.current == null) {
             LocalProfileScreen(onDone = closePicker, onBack = closePicker)
