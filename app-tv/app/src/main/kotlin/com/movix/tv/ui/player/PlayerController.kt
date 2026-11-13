@@ -386,7 +386,7 @@ class PlayerController(
             val ratings = withContext(Dispatchers.Default) {
                 variants.mapNotNull { (id, v) -> SourceSelector.rate(v, container.codecSupport::supports)?.let { id to it } }.toMap()
             }
-            sources = SourceSelector.byQuality(ranked, ratings)
+            sources = SourceSelector.preferHealthy(SourceSelector.byQuality(ranked, ratings), hostHealth::isCoolingDown)
             val first = SourceSelector.pick(sources, req.isTv)
             Log.i("MovixPlayer", "sources lues ${ratings.size} : " + sources.take(8).joinToString { s ->
                 val r = ratings[s.id]
