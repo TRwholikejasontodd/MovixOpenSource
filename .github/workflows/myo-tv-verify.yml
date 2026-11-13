@@ -24,13 +24,16 @@ jobs:
           java-version: "17"
           cache: gradle
           cache-dependency-path: app-tv/**/*.gradle*
-      - name: Android SDK command line tools
-        uses: android-actions/setup-android@v3
+      # GitHub-hosted Ubuntu runners already provide Android command-line tools.
+      # setup-android@v3 calls the removed SDK package "tools" and fails on current runners.
       - name: Install Android TV build prerequisites
         shell: bash
         run: |
-          yes | sdkmanager --licenses > /dev/null || true
-          sdkmanager --install "platforms;android-37" "build-tools;37.0.0" "ndk;26.1.10909125" "cmake;3.22.1"
+          echo "SDK: $ANDROID_HOME"
+          SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | sort -V | tail -1)"
+          test -x "$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses > /dev/null || true
+          "$SDKMANAGER" --install "platforms;android-37" "build-tools;37.0.0" "ndk;26.1.10909125" "cmake;3.22.1"
       - name: Unit tests and unsigned debug APKs
         working-directory: app-tv
         shell: bash
