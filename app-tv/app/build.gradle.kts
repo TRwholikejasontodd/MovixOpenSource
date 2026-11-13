@@ -252,6 +252,23 @@ val prepareCurlImpersonate = tasks.register<PrepareCurlImpersonate>("prepareCurl
 }
 tasks.named("preBuild") { dependsOn(prepareCurlImpersonate) }
 
+// L'APK ne doit jamais contenir une autre voix que la bande-son n°6 approuvée.
+// Contrôle indépendant du codec ou de la voix Android : octets identiques.
+val verifyMyoIntroVoice = tasks.register("verifyMyoIntroVoice") {
+    val soundtrack = layout.projectDirectory.file("src/main/res/raw/myo_intro_voice6.mp3")
+    inputs.file(soundtrack)
+    doLast {
+        val audio = soundtrack.asFile
+        check(audio.isFile) { "Piste MYO n°6 absente de res/raw" }
+        val actual = MessageDigest.getInstance("SHA-256")
+            .digest(audio.readBytes()).joinToString("") { "%02x".format(it) }
+        check(actual == "2f7344884618244b5b5ac185d0bf5887115638620a3d9433fe699821e7e03c39") {
+            "Piste audio MYO différente de la voix n°6 approuvée : $actual"
+        }
+    }
+}
+tasks.named("preBuild") { dependsOn(verifyMyoIntroVoice) }
+
 kotlin {
     jvmToolchain(17)
 }
