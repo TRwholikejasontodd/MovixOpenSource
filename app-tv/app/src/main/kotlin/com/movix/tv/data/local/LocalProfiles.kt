@@ -119,7 +119,7 @@ object ProfileLibraryKeys {
     private val ui = setOf(
         TvKeys.WATCH_META, TvKeys.SEARCH_RECENT, TvKeys.PLAYER_PREFS,
         UiKeys.SUBTITLE_STYLE, UiKeys.HOME_ROWS, UiKeys.RAIL_HIDDEN,
-        UiKeys.AUTOPLAY_NEXT, UiKeys.BANNER_VIDEO, UiKeys.ACCENT,
+        UiKeys.AUTOPLAY_NEXT, UiKeys.BANNER_VIDEO, UiKeys.ACCENT, UiKeys.AUDIO_MODE,
     )
     fun belongsToProfile(key: String): Boolean = SyncMerge.isSynced(key) || key in ui
 }
