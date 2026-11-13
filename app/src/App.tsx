@@ -5,6 +5,7 @@ import {
   Alert,
   NativeModules,
   Platform,
+  View,
 } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -102,6 +103,7 @@ export default function App() {
   const [ready, setReady] = useState(false);
   const [showMyoIntro, setShowMyoIntro] = useState(true);
   const [dnsSettled, setDnsSettled] = useState(false);
+  const [needsInitialDnsPrompt, setNeedsInitialDnsPrompt] = useState(false);
 
   // Le tampon natif du journal réseau part éteint à chaque démarrage : sans ce
   // rappel au boot, la capture ne reprenait qu'en ouvrant les réglages, et une
@@ -140,12 +142,17 @@ export default function App() {
           await AsyncStorage.setItem('dns_enabled', 'false');
           setDnsSettled(true);
         } else if (stored === null) {
-          // Attendre la réponse, et le VPN si l'utilisateur l'active, AVANT
-          // de charger Movix : un VPN monté en plein chargement laissait les
-          // connexions déjà ouvertes bloquées (requêtes qui expirent, images
-          // qui ne chargent pas, puis « Movix injoignable »).
-          await promptDns();
-          setDnsSettled(true);
+          if (Platform.OS === 'ios') {
+            // Sur iPhone, montrer l'introduction MYO avant le choix DNS.
+            // La WebView attend la réponse pour éviter de changer le réseau
+            // au milieu de son chargement initial.
+            setNeedsInitialDnsPrompt(true);
+          } else {
+            // Android : attendre le choix et la montée éventuelle du VPN
+            // avant de charger la WebView (sinon les premières requêtes cassent).
+            await promptDns();
+            setDnsSettled(true);
+          }
         } else {
           setDnsSettled(true);
         }
@@ -172,14 +179,34 @@ export default function App() {
     return () => subscription.remove();
   }, []);
 
+  useEffect(() => {
+    if (Platform.OS !== 'ios' || !ready || showMyoIntro || !needsInitialDnsPrompt) {
+      return;
+    }
+    let active = true;
+    // Après l'introduction uniquement : iOS affiche d'abord l'identité MYO,
+    // puis la demande de configuration, jamais une alerte sur un écran vide.
+    void promptDns().finally(() => {
+      if (active) {
+        setNeedsInitialDnsPrompt(false);
+        setDnsSettled(true);
+      }
+    });
+    return () => { active = false; };
+  }, [ready, showMyoIntro, needsInitialDnsPrompt]);
+
   if (!ready) return null;
 
   return (
     <SafeAreaProvider>
       <StatusBar barStyle="light-content" backgroundColor="#0a0a0a" />
-      <AddressProvider>
-        <AppShell dnsSettled={dnsSettled} />
-      </AddressProvider>
+      {dnsSettled ? (
+        <AddressProvider>
+          <AppShell dnsSettled={dnsSettled} />
+        </AddressProvider>
+      ) : (
+        <View style={{ flex: 1, backgroundColor: '#08060F' }} />
+      )}
       {Platform.OS === 'ios' && showMyoIntro && (
         <MyoPremiumIntro onFinish={() => setShowMyoIntro(false)} />
       )}
