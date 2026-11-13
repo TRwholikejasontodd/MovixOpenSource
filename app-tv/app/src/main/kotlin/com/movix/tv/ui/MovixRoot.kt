@@ -176,17 +176,14 @@ fun MovixRoot(onExit: () -> Unit) {
         }
     }
 
-    // Premier lancement sans compte : l'écran de connexion est proposé une fois.
+    // Première ouverture : l'accueil reste accessible sans compte.
+    // La liaison Movix est facultative et reste disponible depuis les paramètres.
     LaunchedEffect(Unit) {
         container.accounts.restore()
         val saved = container.store.snapshot()
         // Accueil caché dans les réglages : on ouvre la première entrée visible.
         val first = firstVisibleSection(railHiddenSections(saved))
         if (first != Section.HOME) nav.select(first)
-        if (container.accounts.current == null && saved[TvKeys.LINK_PROMPTED] == null) {
-            container.store.writeAll(mapOf(TvKeys.LINK_PROMPTED to "1"))
-            nav.push(Route.Link)
-        }
         if (container.accounts.current != null && UiPrefs.flag(saved, UiKeys.PROFILE_PROMPT)) {
             // Profils gardés sur la télé : l'écran s'ouvre sans attendre le réseau.
             // Sans liste encore (première fois), elle est seulement rapatriée :
