@@ -92,7 +92,7 @@ internal fun AppearancePane() {
                 ColorSwatch(
                     color = Color(accent.argb),
                     selected = accent == current,
-                    onClick = { write(UiKeys.ACCENT, if (accent == AccentColor.RED) null else accent.id) },
+                    onClick = { write(UiKeys.ACCENT, if (accent == AccentColor.PURPLE) null else accent.id) },
                     onFocused = { focusedColor = accent },
                 )
             }
@@ -257,7 +257,7 @@ internal fun HomePane() {
                 "",
                 listOf(0, 2, 5, 10, 30).map { it to if (it == 0) stringResource(R.string.home_screensaver_off) else stringResource(R.string.home_screensaver_min, it) },
                 minutes,
-                { write(UiKeys.SCREENSAVER_MIN, if (it == 5) null else it.toString()) },
+                { write(UiKeys.SCREENSAVER_MIN, if (it == 10) null else it.toString()) },
             )
         }
         Spacer(Modifier.height(10.dp))
