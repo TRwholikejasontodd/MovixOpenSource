@@ -30,7 +30,7 @@ object SourceSelector {
         s.provider == Provider.PURSTREAM -> 2
         s.provider == Provider.KISSKH -> 4
         s.provider == Provider.LINKS && s.embedUrl == null -> 3 // fichier MP4 communautaire
-        s.kind == StreamKind.HLS -> 0
+        s.kind == StreamKind.HLS || s.kind == StreamKind.DASH -> 0
         else -> 1
     }
 
