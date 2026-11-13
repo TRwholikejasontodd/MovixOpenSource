@@ -56,6 +56,7 @@ import com.movix.tv.data.local.UiPrefs
 import com.movix.tv.data.movix.Lang
 import com.movix.tv.data.movix.PlaybackSource
 import com.movix.tv.data.movix.Provider
+import com.movix.tv.player.AudioMode
 import com.movix.tv.ui.components.MovixIcons
 import com.movix.tv.ui.theme.MovixColors
 import com.movix.tv.ui.theme.MovixType
@@ -69,6 +70,7 @@ enum class PanelPage(val title: Int) {
     SOURCE(R.string.player_source),
     QUALITY(R.string.player_quality),
     AUDIO(R.string.player_audio),
+    SMART_SOUND(R.string.myo_audio_title),
     SUBTITLES(R.string.player_subtitles),
     OFFSET(R.string.player_offset),
     SPEED(R.string.player_speed),
@@ -159,6 +161,7 @@ private fun MainPanel(c: PlayerController, page: PanelPage, onPage: (PanelPage) 
         PanelPage.SOURCE to (c.current?.label ?: "—"),
         PanelPage.QUALITY to (c.selectedVideo?.label ?: c.qualityText ?: context.getString(R.string.player_auto)),
         PanelPage.AUDIO to (c.selectedAudio?.display(context, audioFallback(c)) ?: context.getString(R.string.player_auto)),
+        PanelPage.SMART_SOUND to (if (c.audioEffectAvailable) c.audioMode.title else "Indisponible"),
         PanelPage.SUBTITLES to subtitleLabel(c, context),
         PanelPage.SUBTITLE_STYLE to "${percentLabel(style.size, context)}, ${colorLabel(style.color, context)}",
         PanelPage.OFFSET to offsetLabel(c.subtitleOffsetMs),
@@ -320,6 +323,13 @@ private fun options(
                 group = if (i == 0) context.getString(R.string.player_group_web) else null,
                 onClick = { onClose(); c.openWeb(s) },
             )
+        }
+    }
+    PanelPage.SMART_SOUND -> if (!c.audioEffectAvailable) {
+        listOf(Option("Sortie audio incompatible", enabled = false))
+    } else {
+        AudioMode.entries.map { mode ->
+            Option(mode.title, selected = c.audioMode == mode, onClick = { c.setAudioMode(mode) })
         }
     }
     PanelPage.QUALITY -> listOf(Option(context.getString(R.string.player_auto), selected = c.selectedVideo == null, onClick = { c.selectVideo(null) })) +
