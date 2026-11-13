@@ -51,7 +51,17 @@ object SourceSelector {
         val seenStream = HashSet<String>()
         val seenEmbed = HashSet<String>()
         return all.filter { it.playable }.sortedWith(comparator).filter { s ->
-            seenStream.add(s.streamUrl!!) && (s.embedUrl == null || seenEmbed.add(s.embedUrl))
+            val stream = s.streamUrl!!
+            val embed = s.embedUrl
+            if (stream in seenStream || (embed != null && embed in seenEmbed)) {
+                false
+            } else {
+                // N'enregistrer les identifiants qu'une fois la source acceptée.
+                // Un doublon d'embed ne doit pas masquer un autre flux valide.
+                seenStream.add(stream)
+                if (embed != null) seenEmbed.add(embed)
+                true
+            }
         }
     }
 
