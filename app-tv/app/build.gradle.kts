@@ -288,6 +288,7 @@ dependencies {
     // contrôles et sous-titres sont dessinés en Compose.
     implementation(libs.media3.exoplayer)
     implementation(libs.media3.hls)
+    implementation(libs.media3.dash)
     implementation(libs.media3.okhttp)
     // Son Dolby / DTS décodé par l'appli quand la télé ne sait ni le décoder ni
     // l'envoyer à l'ampli (module ffmpeg/, environ 1,1 Mo par ABI).
