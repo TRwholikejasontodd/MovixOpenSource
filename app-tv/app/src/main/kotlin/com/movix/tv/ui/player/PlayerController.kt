@@ -268,7 +268,7 @@ class PlayerController(
                 reportFormatIssue(if (video) FormatIssue(name, null) else FormatIssue(null, name))
                 return
             }
-            if (parsing && !kindRetried) {
+            if (parsing && !kindRetried && s.kind != StreamKind.DASH) {
                 // Les URL du relais n'ont pas d'extension : on a peut-être pris
                 // un fichier MP4 pour du HLS, ou l'inverse. Un essai avec l'autre type.
                 kindRetried = true
