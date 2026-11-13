@@ -125,6 +125,19 @@ object SourceSelector {
      * entre les candidats équivalents. Un hébergeur inconnu ne passe pas
      * artificiellement devant un hébergeur identifié.
      */
+    /**
+     * Une panne répétée écarte temporairement son hébergeur pour les futurs
+     * titres de la même séance, sans jamais changer la priorité VF/VOSTFR/VO.
+     */
+    fun preferHealthy(
+        ranked: List<PlaybackSource>,
+        coolingDown: (String?) -> Boolean,
+    ): List<PlaybackSource> = ranked.withIndex().sortedWith(compareBy(
+        { LANG_RANK[it.value.language] ?: 9 },
+        { if (coolingDown(it.value.host)) 1 else 0 },
+        { it.index },
+    )).map { it.value }
+
     fun afterFailure(
         playable: List<PlaybackSource>,
         failedIds: Set<String>,
