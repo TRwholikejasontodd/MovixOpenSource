@@ -15,6 +15,7 @@ Le dépôt public `warbix-prog/ONYX` consultable à cette date ne contient que l
 - Espace de noms significatif : `com.streamflixreborn.streamflix`.
 - Classes de type `Provider` et implémentations de fournisseurs ; classes de type `Extractor` par hébergeur.
 - Traces de lecteurs Media3/ExoPlayer, persistance locale des films, saisons et épisodes.
+- La classe `PlayerTvFragment` expose 105 noms de méthodes dans la table DEX, dont une grande majorité obscurcie (`A`, `B0`, etc.). La simple présence des noms ne permet pas de reconstituer l'algorithme de choix de source.
 - Bibliothèques vidéo natives (avcodec/avutil et modules complémentaires).
 
 ## Correspondances et travaux dans Myo
