@@ -7,6 +7,11 @@ on:
       - 'app/**'
       - '.github/workflows/ios-unsigned.yml'
   push:
+    branches:
+      - feature/android-tv-premium
+    paths:
+      - 'app/**'
+      - '.github/workflows/ios-unsigned.yml'
     tags:
       - 'ios-v*'
 
@@ -72,6 +77,15 @@ jobs:
       - name: Build the injected userscript
         working-directory: app
         run: npm run build:userscript
+
+      - name: Generate premium MYO launcher icons
+        working-directory: app
+        run: |
+          python3 -m venv "$RUNNER_TEMP/myo-icon-venv"
+          "$RUNNER_TEMP/myo-icon-venv/bin/python" -m pip install --quiet Pillow==11.3.0
+          "$RUNNER_TEMP/myo-icon-venv/bin/python" scripts/generate-myo-ios-icons.py
+          test -s ios/Movix/Images.xcassets/AppIcon.appiconset/icon-1024.png
+          test -s ios/Movix/Images.xcassets/AppIcon.appiconset/icon-180.png
 
       # L'identite de l'artefact vient d'app.json, jamais d'une saisie humaine :
       # une valeur hors format casserait le nom de l'artefact et la release.
@@ -193,6 +207,13 @@ jobs:
             CODE_SIGN_IDENTITY= \
             CODE_SIGN_ENTITLEMENTS=
 
+      - name: Embed approved MYO voice 6 into the compiled iPhone app
+        working-directory: app
+        run: |
+          DEST="build/dd/Build/Products/Release-iphoneos/Movix.app/myo_intro_voice6.mp3"
+          cp ../app-tv/app/src/main/res/raw/myo_intro_voice6.mp3 "$DEST"
+          echo "2f7344884618244b5b5ac185d0bf5887115638620a3d9433fe699821e7e03c39  $DEST" | shasum -a 256 -c -
+
       - name: Package the unsigned IPA
         working-directory: app
         env:
@@ -216,6 +237,9 @@ jobs:
           lipo -archs "$APP/Movix" | tr ' ' '\n' | grep -qw arm64
           test ! -e "$PAYLOAD/_CodeSignature"
           test ! -e "$PAYLOAD/embedded.mobileprovision"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleDisplayName' "$APP/Info.plist")" = "MYO Premium"
+          test -s "$PAYLOAD/myo_intro_voice6.mp3"
+          echo "2f7344884618244b5b5ac185d0bf5887115638620a3d9433fe699821e7e03c39  $PAYLOAD/myo_intro_voice6.mp3" | shasum -a 256 -c -
           unzip -t build/unsigned-ipa/Movix-unsigned.ipa
           (cd build/unsigned-ipa && shasum -a 256 -c Movix-unsigned.ipa.sha256)
 
