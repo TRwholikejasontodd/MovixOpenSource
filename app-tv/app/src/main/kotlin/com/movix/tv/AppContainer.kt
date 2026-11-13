@@ -15,6 +15,8 @@ import com.movix.tv.data.movix.MovixApi
 import com.movix.tv.data.movix.SourceRepository
 import com.movix.tv.data.movix.StreamProbe
 import com.movix.tv.data.movix.VipManager
+import com.movix.tv.data.sources.MovixCompatibilityProvider
+import com.movix.tv.data.sources.SourceGateway
 import com.movix.tv.data.net.ApiHostInterceptor
 import com.movix.tv.data.net.ApiHostResolver
 import com.movix.tv.data.net.Ipv4FirstDns
@@ -94,6 +96,8 @@ class AppContainer(context: Context) {
     val accounts = AccountManager(context.applicationContext, store, accountApi, vip, json)
     val sync = SyncManager(appScope, store, accountApi, accounts, json)
     val swiftflux = SwiftFluxClient(http, json, movix.baseUrl)
+    /** MYO entry point for modular sources. Legacy Movix remains only as a compatibility provider. */
+    val sourceGateway = SourceGateway(listOf(MovixCompatibilityProvider(sources, swiftflux)))
     /** Rangée « Reprendre » lue sur le serveur (historique en base). */
     val history = HistoryApi(http, json, movix.baseUrl)
 
