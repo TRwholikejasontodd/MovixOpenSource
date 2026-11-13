@@ -329,7 +329,7 @@ private fun options(
         listOf(Option("Sortie audio incompatible", enabled = false))
     } else {
         AudioMode.entries.map { mode ->
-            Option(mode.title, selected = c.audioMode == mode, onClick = { c.setAudioMode(mode) })
+            Option(mode.title, selected = c.audioMode == mode, onClick = { c.chooseAudioMode(mode) })
         }
     }
     PanelPage.QUALITY -> listOf(Option(context.getString(R.string.player_auto), selected = c.selectedVideo == null, onClick = { c.selectVideo(null) })) +
