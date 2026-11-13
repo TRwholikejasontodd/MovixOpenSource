@@ -37,6 +37,8 @@ import com.movix.tv.data.movix.StreamKind
 import com.movix.tv.data.movix.SubtitleTrack
 import com.movix.tv.data.tmdb.Episode
 import com.movix.tv.data.tmdb.MediaType
+import com.movix.tv.player.AudioMode
+import com.movix.tv.player.SmartAudio
 import com.movix.tv.player.Codecs
 import com.movix.tv.player.VideoFrameHealth
 import com.movix.tv.player.SubtitleCue
@@ -227,6 +229,9 @@ class PlayerController(
     private val failed = HashSet<String>()
     private val hostHealth = SourceHealthTracker()
     private val frameHealth = VideoFrameHealth()
+    private val smartAudio = SmartAudio()
+    var audioMode by mutableStateOf(AudioMode.from(container.store.values.value[UiKeys.AUDIO_MODE])); private set
+    var audioEffectAvailable by mutableStateOf(smartAudio.available); private set
     private var kindRetried = false
     private var loadJob: Job? = null
     private var startWatch: Job? = null
@@ -336,6 +341,11 @@ class PlayerController(
      * pas perdre la position ; une vraie bascule reste le dernier recours.
      */
     private val analyticsListener = object : AnalyticsListener {
+        override fun onAudioSessionIdChanged(eventTime: AnalyticsListener.EventTime, audioSessionId: Int) {
+            smartAudio.onAudioSession(audioSessionId)
+            audioEffectAvailable = smartAudio.available
+        }
+
         override fun onVideoDecoderInitialized(
             eventTime: AnalyticsListener.EventTime,
             decoderName: String,
@@ -387,6 +397,16 @@ class PlayerController(
     init {
         player.addListener(listener)
         player.addAnalyticsListener(analyticsListener)
+        // Une mise à jour provenant des réglages ou du changement de profil
+        // prend effet sans recréer le lecteur ni modifier le volume de sortie.
+        scope.launch {
+            container.store.values.collect { map ->
+                val requested = AudioMode.from(map[UiKeys.AUDIO_MODE])
+                audioMode = requested
+                smartAudio.setMode(requested)
+                audioEffectAvailable = smartAudio.available
+            }
+        }
         // Pistes de texte du flux coupées par défaut : seules les choisies s'affichent.
         player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
             .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true).build()
@@ -849,6 +869,15 @@ class PlayerController(
     // ---------- commandes ----------
 
     /** Confirmation explicite, uniquement lorsque Media3 a fini la préparation. */
+    fun setAudioMode(mode: AudioMode) {
+        audioMode = mode
+        smartAudio.setMode(mode)
+        audioEffectAvailable = smartAudio.available
+        container.appScope.launch {
+            container.store.set(UiKeys.AUDIO_MODE, mode.id.takeUnless { it == AudioMode.OFF.id })
+        }
+    }
+
     fun launchPlayback() {
         if (!readyToLaunch || player.playbackState != Player.STATE_READY) return
         userLaunchedPlayback = true
@@ -1187,6 +1216,7 @@ class PlayerController(
         inFlight.clear()
         player.removeListener(listener)
         player.removeAnalyticsListener(analyticsListener)
+        smartAudio.release()
         player.release()
     }
 
