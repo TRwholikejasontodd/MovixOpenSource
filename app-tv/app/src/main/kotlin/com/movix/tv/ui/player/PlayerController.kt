@@ -158,6 +158,8 @@ class PlayerController(
     /** La première source est préparée / bufferisée, sans démarrer automatiquement. */
     var readyToLaunch by mutableStateOf(false); private set
     private var userLaunchedPlayback = false
+    val preparingFirstPlayback: Boolean
+        get() = phase == PlayerPhase.PLAYING && !userLaunchedPlayback && !readyToLaunch
     var positionMs by mutableLongStateOf(0L); private set
     var durationMs by mutableLongStateOf(0L); private set
     var bufferedMs by mutableLongStateOf(0L); private set
@@ -855,7 +857,7 @@ class PlayerController(
     }
 
     fun togglePlay() {
-        if (readyToLaunch) {
+        if (!userLaunchedPlayback) {
             launchPlayback()
             return
         }
