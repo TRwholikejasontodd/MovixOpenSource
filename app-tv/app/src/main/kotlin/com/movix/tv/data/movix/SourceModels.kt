@@ -26,7 +26,7 @@ enum class Provider(val label: String) {
 
 enum class Lang(val label: String?) { VF("VF"), VOSTFR("VOSTFR"), VO("VO"), UNKNOWN(null) }
 
-enum class StreamKind { HLS, FILE }
+enum class StreamKind { HLS, DASH, FILE }
 
 @Immutable
 data class SubtitleTrack(
