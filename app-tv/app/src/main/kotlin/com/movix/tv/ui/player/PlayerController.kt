@@ -870,7 +870,7 @@ class PlayerController(
     // ---------- commandes ----------
 
     /** Confirmation explicite, uniquement lorsque Media3 a fini la préparation. */
-    fun setAudioMode(mode: AudioMode) {
+    fun chooseAudioMode(mode: AudioMode) {
         audioMode = mode
         smartAudio.setMode(mode)
         audioEffectAvailable = smartAudio.available
