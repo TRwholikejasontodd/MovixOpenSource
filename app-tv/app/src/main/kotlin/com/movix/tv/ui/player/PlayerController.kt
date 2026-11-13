@@ -32,6 +32,7 @@ import com.movix.tv.data.movix.PlaybackSource
 import com.movix.tv.data.movix.SourceSelector
 import com.movix.tv.data.movix.StreamKind
 import com.movix.tv.data.movix.SubtitleTrack
+import com.movix.tv.data.sources.SourceRequestContext
 import com.movix.tv.data.tmdb.Episode
 import com.movix.tv.data.tmdb.MediaType
 import com.movix.tv.player.Codecs
@@ -333,13 +334,9 @@ class PlayerController(
             // Sans VIP, l'extraction sur la télé est probable : le moteur se
             // prépare (≈ 0,2 s) pendant que les routes répondent.
             if (vipKey == null) launch(Dispatchers.Default) { runCatching { container.extractor.warmUp() } }
-            // SwiftFlux : route ouverte aux télés, sans compte.
-            val swiftflux: (suspend (Int) -> Pair<String, String?>?)? = container.swiftflux.let { client ->
-                val s = if (req.isTv) req.season ?: 1 else null
-                val e = if (req.isTv) req.episode ?: 1 else null
-                { index -> client.resolve(req.tmdbId, s, e, index)?.let { it.url to it.quality } }
-            }
-            val all = container.sources.load(req, vipKey, swiftflux = swiftflux)
+            // The player only talks to the provider-neutral MYO gateway.
+            // Movix compatibility (including SwiftFlux) is isolated in its own adapter.
+            val all = container.sourceGateway.load(req, SourceRequestContext(accessKey = vipKey))
             val ranked = SourceSelector.playable(all)
             // Seuls les liens que le userscript sait extraire sont proposés sur
             // la télé (les autres échouaient en « Unknown embed type ») ; leur
