@@ -28,6 +28,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.delay
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.withFrameNanos
@@ -80,6 +81,10 @@ fun MovixRoot(onExit: () -> Unit) {
     // « Qui regarde ? » : au lancement (compte à plusieurs profils) ou depuis
     // Réglages › Compte. Rien n'est affiché avant de savoir s'il faut le montrer.
     var started by remember { mutableStateOf(false) }
+    var introFinished by remember { mutableStateOf(false) }
+    // L'initialisation des profils et du catalogue continue pendant les 3,2 s
+    // de l'intro ; elle ne commence pas après l'animation.
+    LaunchedEffect(Unit) { delay(INTRO_DURATION_MS); introFinished = true }
     var picker by remember { mutableStateOf<ProfilePickerFrom?>(null) }
     var refocusContent by remember { mutableIntStateOf(0) }
     val closePicker = {
@@ -89,6 +94,7 @@ fun MovixRoot(onExit: () -> Unit) {
 
     BackHandler {
         when {
+            !started || !introFinished -> Unit
             nav.pop() -> Unit
             !railFocused -> runCatching { railRequester.requestFocus() }
             else -> onExit()
@@ -99,7 +105,7 @@ fun MovixRoot(onExit: () -> Unit) {
     // léger zoom. Toutes les sections partagent une clé : changer de section ne
     // recrée pas le rail (il perdrait le focus). Mode léger : fondu seul.
     val lowRam = LocalLowRam.current
-    if (!started) {
+    if (!started || !introFinished) {
         MyoSplash(Modifier.fillMaxSize())
     } else if (picker != null) {
         if (container.accounts.current == null) {
