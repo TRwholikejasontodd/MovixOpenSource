@@ -115,6 +115,9 @@
     <string name="player_extracting_short">extracting…</string>
     <string name="player_extract_failed">This player couldn\'t be extracted. Pick another one.</string>
     <string name="player_loading">Looking for sources…</string>
+    <string name="myo_preparation_ready">Video ready · Choose a source or start playback</string>
+    <string name="myo_launch_playback">Start playback</string>
+    <string name="myo_preparation_technical">Selected source: %1$s</string>
     <string name="player_no_source">No playable source for this title.</string>
     <string name="player_source_failed">This source doesn\'t work, trying the next one…</string>
     <string name="player_next_episode">Next episode</string>
