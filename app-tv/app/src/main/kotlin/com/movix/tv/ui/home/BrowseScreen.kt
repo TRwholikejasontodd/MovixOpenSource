@@ -70,8 +70,6 @@ import com.movix.tv.ui.components.PillButton
 import com.movix.tv.ui.components.PivotBringIntoViewSpec
 import com.movix.tv.ui.components.PosterCard
 import com.movix.tv.ui.components.TmdbImage
-import com.movix.tv.ui.demo.DemoCatalogScreen
-import com.movix.tv.ui.demo.DemoFilm
 import com.movix.tv.ui.nav.Section
 import com.movix.tv.ui.theme.MovixColors
 import com.movix.tv.ui.theme.MovixType
@@ -109,7 +107,7 @@ private val HeroHeight = 390.dp
 fun BrowseScreen(
     section: Section,
     onOpen: (MediaItem) -> Unit,
-    onDemoPlay: (DemoFilm) -> Unit,
+    onOpenSettings: () -> Unit,
     onResume: (ContinueEntry) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -184,8 +182,18 @@ fun BrowseScreen(
 
     Box(modifier.onFocusChanged { contentFocused = it.hasFocus }.background(MovixColors.Ink)) {
         when (state.status) {
-            BrowseStatus.NoKey -> DemoCatalogScreen(onPlay = onDemoPlay, onRetry = vm::load, missingKey = true)
-            BrowseStatus.Error -> DemoCatalogScreen(onPlay = onDemoPlay, onRetry = vm::load, missingKey = false)
+            BrowseStatus.NoKey -> Message(
+                title = stringResource(R.string.no_key_title),
+                body = stringResource(R.string.no_key_body),
+                action = stringResource(R.string.no_key_action),
+                onAction = onOpenSettings,
+            )
+            BrowseStatus.Error -> Message(
+                title = stringResource(R.string.error_title),
+                body = stringResource(R.string.error_body),
+                action = stringResource(R.string.action_retry),
+                onAction = vm::load,
+            )
             else -> {
                 Hero(hero, trailer)
                 val density = LocalDensity.current
