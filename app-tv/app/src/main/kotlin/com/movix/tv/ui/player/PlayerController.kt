@@ -535,7 +535,7 @@ class PlayerController(
         readyOnCurrentSource = false
         failed += s.id
         val position = player.currentPosition.takeIf { it > 0 } ?: pendingStartMs
-        val nextSource = sources.firstOrNull { it.id !in failed }
+        val nextSource = SourceSelector.afterFailure(sources, failed, s)
         showNotice(com.movix.tv.R.string.player_source_failed)
         if (nextSource != null) {
             play(nextSource, position)
