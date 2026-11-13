@@ -82,9 +82,9 @@ fun MovixRoot(onExit: () -> Unit) {
     // Réglages › Compte. Rien n'est affiché avant de savoir s'il faut le montrer.
     var started by remember { mutableStateOf(false) }
     var introFinished by remember { mutableStateOf(false) }
-    // L'initialisation des profils et du catalogue continue pendant les 3,2 s
-    // de l'intro ; elle ne commence pas après l'animation.
-    LaunchedEffect(Unit) { delay(INTRO_DURATION_MS); introFinished = true }
+    // L'initialisation des profils continue en parallèle de l'intro.
+    // L'écran suivant arrive sur le signal de fin de l'animation, et non
+    // après un second délai indépendant qui pourrait couper le son.
     var picker by remember { mutableStateOf<ProfilePickerFrom?>(null) }
     var refocusContent by remember { mutableIntStateOf(0) }
     val closePicker = {
@@ -106,7 +106,11 @@ fun MovixRoot(onExit: () -> Unit) {
     // recrée pas le rail (il perdrait le focus). Mode léger : fondu seul.
     val lowRam = LocalLowRam.current
     if (!started || !introFinished) {
-        MyoSplash(waitingForData = !started, modifier = Modifier.fillMaxSize())
+        MyoSplash(
+            waitingForData = !started,
+            modifier = Modifier.fillMaxSize(),
+            onIntroFinished = { introFinished = true },
+        )
     } else if (picker != null) {
         if (container.accounts.current == null) {
             LocalProfileScreen(onDone = closePicker, onBack = closePicker)
