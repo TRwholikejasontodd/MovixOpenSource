@@ -33,7 +33,9 @@ jobs:
           SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | sort -V | tail -1)"
           test -x "$SDKMANAGER"
           yes | "$SDKMANAGER" --licenses > /dev/null || true
-          "$SDKMANAGER" --install "platforms;android-37" "build-tools;37.0.0" "ndk;26.1.10909125" "cmake;3.22.1"
+          # Android 17 / API 37 is a preview and may only be published on a preview channel.
+          "$SDKMANAGER" --list --channel=3 | grep -E 'platforms;android-|build-tools;37|cmake;3.22' | head -35 || true
+          "$SDKMANAGER" --install --channel=3 "platforms;android-37" "build-tools;37.0.0" "ndk;26.1.10909125" "cmake;3.22.1"
       - name: Unit tests and unsigned debug APKs
         working-directory: app-tv
         shell: bash
