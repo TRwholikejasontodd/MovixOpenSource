@@ -145,7 +145,7 @@ private fun DetailsContent(d: Details, onPlay: (PlayTarget) -> Unit, onOpen: (Me
     }
     val playRequester = remember { FocusRequester() }
     fun play(season: Int?, episode: Int?) =
-        onPlay(PlayTarget(PlayRequest(item.type, item.id, season, episode, d.imdbId), item.title, item.backdropPath))
+        onPlay(PlayTarget(PlayRequest(item.type, item.id, season, episode, d.imdbId), item.title, item.backdropPath, synopsis = item.overview))
     val playMain = {
         if (item.type == MediaType.TV) play(resume?.first ?: d.seasonNumbers.firstOrNull() ?: 1, resume?.second ?: 1) else play(null, null)
     }
