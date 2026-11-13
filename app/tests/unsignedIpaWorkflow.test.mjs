@@ -9,6 +9,7 @@ import test from 'node:test';
 const generatorPath = fileURLToPath(
   new URL('../scripts/generate-ios-source.mjs', import.meta.url),
 );
+const appMetadataPath = fileURLToPath(new URL('../app.json', import.meta.url));
 
 function generatorEnv(overrides = {}) {
   return {
@@ -38,6 +39,11 @@ test('sidestore source generator produces a source consistent with its inputs', 
     });
 
     const source = JSON.parse(await readFile(output, 'utf8'));
+    const { displayName } = JSON.parse(await readFile(appMetadataPath, 'utf8'));
+    // La fiche installable doit porter le nom visible sur l'écran iPhone.
+    assert.equal(source.name, displayName);
+    assert.equal(source.apps[0].name, displayName);
+    assert.match(source.apps[0].localizedDescription, /MYO Premium/);
     // Clés primaires des stores : figées pour toujours.
     assert.equal(source.identifier, 'com.movix.source');
     const app = source.apps[0];
@@ -84,12 +90,12 @@ test('scarlet source describes the same IPA in scarlet own format', async () => 
     });
 
     const scarlet = JSON.parse(await readFile(scarletOutput, 'utf8'));
-    // Format Scarlet : un bloc META, puis des seaux par catégorie. Movix n'est
-    // ni un tweak ni un émulateur, donc « Other ».
-    assert.equal(scarlet.META.repoName, 'Movix');
+    const { displayName } = JSON.parse(await readFile(appMetadataPath, 'utf8'));
+    // La source Scarlet doit annoncer la même app que l'écran d'accueil iPhone.
+    assert.equal(scarlet.META.repoName, displayName);
     assert.equal(scarlet.META.repoIcon, 'https://example.test/icon-1024.png');
     const entry = scarlet.Other[0];
-    assert.equal(entry.name, 'Movix');
+    assert.equal(entry.name, displayName);
     assert.equal(entry.bundleID, 'com.movix.app');
     assert.equal(entry.version, '9.9.9');
     // `down` est l'équivalent Scarlet de `downloadURL` : la même IPA doit être
