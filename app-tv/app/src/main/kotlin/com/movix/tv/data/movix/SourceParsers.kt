@@ -58,6 +58,7 @@ object SourceParsers {
     fun kindFor(streamUrl: String, host: String?): StreamKind {
         val lower = streamUrl.lowercase()
         return when {
+            lower.contains(".mpd") || lower.contains("mpd%") -> StreamKind.DASH
             lower.contains(".m3u8") || lower.contains("m3u8%") -> StreamKind.HLS
             lower.substringBefore('?').endsWith(".mp4") || lower.contains(".mp4%") || lower.contains(".mp4&") -> StreamKind.FILE
             host in FILE_HOSTS -> StreamKind.FILE
