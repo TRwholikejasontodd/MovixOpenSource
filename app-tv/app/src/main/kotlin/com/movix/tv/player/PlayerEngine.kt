@@ -31,7 +31,7 @@ import java.util.concurrent.Executors
  * ([CurlImpersonateDataSource]) → en-têtes par hôte ([MediaHeaders]) →
  * déballage des segments PNG+MPEG-TS ([PngTsDataSource]).
  */
-class PlayerEngine(private val context: Context, private val http: OkHttpClient, private val lowRam: Boolean) {
+class PlayerEngine(private val context: Context, private val http: OkHttpClient, val lowRam: Boolean) {
     private val cronetExecutor by lazy { Executors.newFixedThreadPool(4) }
 
     /**
