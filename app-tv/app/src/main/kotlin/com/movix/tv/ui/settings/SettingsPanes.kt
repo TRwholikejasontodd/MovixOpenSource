@@ -39,6 +39,7 @@ import androidx.tv.material3.Text
 import com.movix.tv.R
 import com.movix.tv.container
 import com.movix.tv.data.local.AccentColor
+import com.movix.tv.player.AudioMode
 import com.movix.tv.data.local.HomeRows
 import com.movix.tv.data.local.SubtitleStyle
 import com.movix.tv.data.local.UiKeys
@@ -338,5 +339,16 @@ internal fun PlaybackPane() {
             { write(UiKeys.AUTOPLAY_NEXT, if (autoplay) "0" else null) },
             body = stringResource(R.string.playback_autoplay_body),
         )
+        if (android.os.Build.VERSION.SDK_INT >= 28) {
+            Spacer(Modifier.height(12.dp))
+            Text("Contrôle intelligent du son", style = MovixType.Button)
+            Text("Compression facultative, uniquement si le circuit audio Android la prend en charge. Son original en cas d'échec.", style = MovixType.Meta)
+            ChoiceRow(
+                "",
+                AudioMode.entries.map { it to it.title },
+                AudioMode.from(values[UiKeys.AUDIO_MODE]),
+                { write(UiKeys.AUDIO_MODE, it.id.takeUnless { id -> id == AudioMode.OFF.id }) },
+            )
+        }
     }
 }
