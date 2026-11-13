@@ -1,0 +1,55 @@
+name: MYO Android TV — branch verification
+
+on:
+  push:
+    branches:
+      - myo/onyx-provider-architecture
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android-tv:
+    name: Compile and test native TV app
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    steps:
+      - name: Checkout MYO
+        uses: actions/checkout@v4
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+          cache-dependency-path: app-tv/**/*.gradle*
+      - name: Android SDK command line tools
+        uses: android-actions/setup-android@v3
+      - name: Install Android TV build prerequisites
+        shell: bash
+        run: |
+          yes | sdkmanager --licenses > /dev/null || true
+          sdkmanager --install "platforms;android-37" "build-tools;37.0.0" "ndk;26.1.10909125" "cmake;3.22.1"
+      - name: Unit tests and unsigned debug APKs
+        working-directory: app-tv
+        shell: bash
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:testDebugUnitTest :app:assembleDebug --no-daemon --stacktrace
+      - name: Archive source test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: myo-tv-test-reports
+          path: |
+            app-tv/app/build/test-results/testDebugUnitTest/**
+            app-tv/app/build/reports/tests/testDebugUnitTest/**
+          if-no-files-found: ignore
+      - name: Archive debug APKs (unverified on Sony Bravia)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: myo-tv-debug-apks
+          path: app-tv/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
