@@ -140,6 +140,14 @@ class SourceParsersTest {
     }
 
     @Test
+    fun directStreamsRecognizeDashHlsAndFiles() {
+        assertEquals(StreamKind.DASH, SourceParsers.kindFor("https://cdn.example/manifest.mpd?token=1", null))
+        assertEquals(StreamKind.DASH, SourceParsers.kindFor("https://relay.example/play?format=manifest.mpd", "uqload"))
+        assertEquals(StreamKind.HLS, SourceParsers.kindFor("https://cdn.example/master.m3u8", null))
+        assertEquals(StreamKind.FILE, SourceParsers.kindFor("https://cdn.example/video.mp4", null))
+    }
+
+    @Test
     fun languageNormalisation() {
         assertEquals(Lang.VF, SourceParsers.language("VFQ"))
         assertEquals(Lang.VF, SourceParsers.language("Français"))
