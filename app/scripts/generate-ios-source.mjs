@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-// Génère la source AltStore/SideStore de Movix (movix-ios-source.json).
+// Génère les fiches de distribution iOS MYO Premium (AltStore/SideStore et Scarlet).
 //
 // Toutes les entrées viennent de l'environnement : le job de release du
 // workflow ios-unsigned est le seul appelant légitime, et une valeur hors
 // format doit faire échouer la publication plutôt que servir une source
 // invalide aux utilisateurs qui l'ont ajoutée dans leur store.
 
-import { statSync, writeFileSync } from 'node:fs';
+import { readFileSync, statSync, writeFileSync } from 'node:fs';
 
 function fail(message) {
   console.error(message);
@@ -27,6 +27,14 @@ function requiredHttps(name) {
     fail(`${name} must be an https URL: ${value}`);
   }
   return value;
+}
+
+// Le nom visible doit rester celui du bundle iPhone ; on conserve les identifiants
+// historiques et le crédit développeur de Movix pour les installations existantes.
+const metadata = JSON.parse(readFileSync(new URL('../app.json', import.meta.url), 'utf8'));
+const appDisplayName = metadata.displayName;
+if (typeof appDisplayName !== 'string' || !appDisplayName.trim()) {
+  fail('app.json displayName is required for iOS store metadata');
 }
 
 const version = required('IOS_SOURCE_VERSION');
@@ -81,26 +89,27 @@ const versionDescription =
 const website = 'https://movix.online';
 
 const appDescription =
-  "Application iOS officielle de Movix : navigation intégrée, lecture " +
-  "vidéo native, image dans l'image, Chromecast et DNS sécurisé.";
+  `${appDisplayName} pour iPhone, basé sur Movix : navigation intégrée, ` +
+  "lecture vidéo native, image dans l'image et Chromecast. " +
+  "Le DNS système nécessite une autorisation et un profil compatibles.";
 
 // « identifier » (source) et « bundleIdentifier » (app) ne doivent JAMAIS
 // changer : AltStore et SideStore s'en servent comme clés primaires ; les
 // modifier ferait disparaître Movix chez tous les utilisateurs qui ont déjà
 // ajouté la source.
 const source = {
-  name: 'Movix',
+  name: appDisplayName,
   identifier: 'com.movix.source',
   subtitle,
   description:
-    "Source officielle de Movix pour AltStore et SideStore. " +
+    `Source ${appDisplayName} pour AltStore et SideStore. ` +
     "Ajoutez-la pour installer l'application iOS et recevoir ses mises à jour.",
   iconURL,
   website,
   tintColor: '#8b5cf6',
   apps: [
     {
-      name: 'Movix',
+      name: appDisplayName,
       bundleIdentifier: 'com.movix.app',
       developerName: 'Movix',
       subtitle,
@@ -150,12 +159,12 @@ const source = {
 // pour qui n'a pas d'ordinateur sous la main.
 const scarletSource = {
   META: {
-    repoName: 'Movix',
+    repoName: appDisplayName,
     repoIcon: iconURL,
   },
   Other: [
     {
-      name: 'Movix',
+      name: appDisplayName,
       version,
       // `down` est l'équivalent Scarlet de `downloadURL` : même IPA, même
       // fichier que celui publié dans la release.
