@@ -31,7 +31,7 @@ object MovixColors {
      * Couleur d'accent choisie dans les réglages (rouge Movix par défaut).
      * État Compose : tout ce qui lit [Red] se redessine quand elle change.
      */
-    private val accent = androidx.compose.runtime.mutableStateOf(Color(0xFFDC2626))
+    private val accent = androidx.compose.runtime.mutableStateOf(Color(0xFF9333EA))
     val Red: Color get() = accent.value
     fun setAccent(color: Color) { if (accent.value != color) accent.value = color }
 
