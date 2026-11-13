@@ -14,13 +14,13 @@
             <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
             <subviews>
-              <label opaque="NO" userInteractionEnabled="NO" contentMode="left" text="Movix" textAlignment="center" translatesAutoresizingMaskIntoConstraints="NO" id="movix-title">
+              <label opaque="NO" userInteractionEnabled="NO" contentMode="left" text="MYO" textAlignment="center" translatesAutoresizingMaskIntoConstraints="NO" id="movix-title">
                 <fontDescription key="fontDescription" type="system" weight="semibold" pointSize="28"/>
-                <color key="textColor" systemColor="labelColor"/>
+                <color key="textColor" red="0.7686" green="0.7098" blue="0.9922" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
               </label>
             </subviews>
             <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
-            <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+            <color key="backgroundColor" red="0.0314" green="0.0235" blue="0.0588" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
             <constraints>
               <constraint firstItem="movix-title" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="center-x"/>
               <constraint firstItem="movix-title" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="center-y"/>
