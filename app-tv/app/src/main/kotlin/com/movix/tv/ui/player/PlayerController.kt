@@ -239,7 +239,9 @@ class PlayerController(
                     durationMs = player.duration.coerceAtLeast(0)
                     onReady()
                 }
-                Player.STATE_BUFFERING -> if (readyOnCurrentSource) watchForStall()
+                Player.STATE_BUFFERING -> {
+                    if (readyOnCurrentSource) watchForStall()
+                }
                 else -> stallWatch?.cancel()
             }
             if (state == Player.STATE_ENDED) {
