@@ -68,6 +68,17 @@ class SourceRepositoryTest {
     }
 
     @Test
+    fun reopeningSameFilmReusesRecentlyDiscoveredPlayableSources() = runTest {
+        val film = PlayRequest(MediaType.MOVIE, 42, imdbId = "tt0000042")
+        val first = withContext(Dispatchers.Default) { repo.load(film, vipKey = "VIP-x") }
+        assertTrue(first.any { it.playable })
+        val requestsAfterFirst = requests.size
+        val second = withContext(Dispatchers.Default) { repo.load(film, vipKey = "VIP-x") }
+        assertEquals(first, second)
+        assertEquals("La même fiche ne doit pas faire d'appels répétés immédiatement", requestsAfterFirst, requests.size)
+    }
+
+    @Test
     fun episodeRoutesCarrySeasonAndEpisode() = runTest {
         withContext(Dispatchers.Default) { repo.load(PlayRequest(MediaType.TV, 7, season = 2, episode = 5), vipKey = null) }
         val byPath = requests.associateBy { it.url.encodedPath }

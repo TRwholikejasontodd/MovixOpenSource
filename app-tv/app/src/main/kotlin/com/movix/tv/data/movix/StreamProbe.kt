@@ -52,7 +52,9 @@ class StreamProbe(
      */
     suspend fun variants(sources: List<PlaybackSource>, totalMs: Long = 4_000): Map<String, List<Variant>> = coroutineScope {
         val results = ConcurrentHashMap<String, List<Variant>>()
-        val jobs = sources.filter { it.streamUrl != null }.map { s ->
+        // Les MPD DASH ne sont ni des playlists HLS ni des en-têtes MP4 :
+        // on laisse Media3 choisir les représentations, sans requête de sonde inutile.
+        val jobs = sources.filter { it.streamUrl != null && it.kind != StreamKind.DASH }.map { s ->
             async {
                 val url = s.streamUrl!!
                 val found = if (s.kind == StreamKind.HLS) fetch(url, s.headers, 0, MAX_PLAYLIST, ranged = false)?.let { HlsMaster.variants(it.decodeToString()) }

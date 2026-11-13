@@ -50,6 +50,9 @@ import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -142,7 +145,7 @@ private fun DetailsContent(d: Details, onPlay: (PlayTarget) -> Unit, onOpen: (Me
     }
     val playRequester = remember { FocusRequester() }
     fun play(season: Int?, episode: Int?) =
-        onPlay(PlayTarget(PlayRequest(item.type, item.id, season, episode, d.imdbId), item.title, item.backdropPath))
+        onPlay(PlayTarget(PlayRequest(item.type, item.id, season, episode, d.imdbId), item.title, item.backdropPath, synopsis = item.overview))
     val playMain = {
         if (item.type == MediaType.TV) play(resume?.first ?: d.seasonNumbers.firstOrNull() ?: 1, resume?.second ?: 1) else play(null, null)
     }
@@ -166,7 +169,7 @@ private fun DetailsContent(d: Details, onPlay: (PlayTarget) -> Unit, onOpen: (Me
                 d.studio?.let { Text(it, style = MovixType.Kicker) }
             }
             Spacer(Modifier.height(12.dp))
-            Text(item.title, style = MovixType.Title, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(item.title, style = MovixType.Title, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.semantics { heading() })
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 item.rating?.let { Text("★ " + String.format(Locale.FRANCE, "%.1f", it), style = MovixType.MetaStrong) }
@@ -192,7 +195,7 @@ private fun DetailsContent(d: Details, onPlay: (PlayTarget) -> Unit, onOpen: (Me
                     item.type == MediaType.MOVIE && Library.progress(values, Library.movieProgressKey(item.id)) != null -> stringResource(R.string.action_resume)
                     else -> stringResource(R.string.action_play)
                 }
-                PillButton(playLabel, playMain, Modifier.focusRequester(playRequester), icon = MovixIcons.Play)
+                PillButton(playLabel, playMain, Modifier.focusRequester(playRequester), icon = MovixIcons.Play, primary = true)
                 PillButton(
                     stringResource(if (inList) R.string.action_watchlist_remove else R.string.action_watchlist_add),
                     onClick = {
@@ -273,7 +276,7 @@ private fun DetailsExtras(d: Details, onOpen: (MediaItem) -> Unit, onVideo: (Vid
     val density = LocalDensity.current
     val rowSpec = remember(density) { PivotBringIntoViewSpec(with(density) { Start.toPx() }) }
     @Composable
-    fun Title(res: Int) = Text(stringResource(res), style = MovixType.Row, modifier = Modifier.padding(start = Start, top = 26.dp, bottom = 10.dp))
+    fun Title(res: Int) = Text(stringResource(res), style = MovixType.Row, modifier = Modifier.padding(start = Start, top = 26.dp, bottom = 10.dp).semantics { heading() })
 
     CompositionLocalProvider(LocalBringIntoViewSpec provides rowSpec) {
         if (d.videos.isNotEmpty()) {
@@ -305,7 +308,7 @@ private fun DetailsExtras(d: Details, onOpen: (MediaItem) -> Unit, onVideo: (Vid
                 horizontalArrangement = Arrangement.spacedBy(18.dp),
             ) {
                 items(d.similar, key = { it.key }) { m ->
-                    PosterCard(imageUrl = TmdbImage.poster(m.posterPath), onClick = { onOpen(m) }, onFocused = {})
+                    PosterCard(imageUrl = TmdbImage.poster(m.posterPath), onClick = { onOpen(m) }, onFocused = {}, contentDescription = m.title, title = m.title)
                 }
             }
         }
@@ -327,7 +330,12 @@ private fun DetailsExtras(d: Details, onOpen: (MediaItem) -> Unit, onVideo: (Vid
 private fun CastCard(c: CastMember) {
     val source = remember { MutableInteractionSource() }
     val focused by source.collectIsFocusedAsState()
-    Column(Modifier.width(112.dp).focusable(interactionSource = source), horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(
+        Modifier.width(112.dp).focusable(interactionSource = source).semantics(mergeDescendants = true) {
+            contentDescription = listOfNotNull(c.name, c.character).joinToString(", ")
+        },
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
         Box(
             Modifier.size(96.dp).clip(CircleShape).background(MovixColors.Chip)
                 .border(if (focused) 3.dp else 0.dp, if (focused) MovixColors.Text else Color.Transparent, CircleShape),

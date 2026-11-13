@@ -53,6 +53,15 @@ class SourceSelectorTest {
     }
 
     @Test
+    fun duplicateEmbedDoesNotDiscardAnotherPlayableStream() {
+        val accepted = src(Provider.FSTREAM, stream = "s1", embed = "https://voe.sx/e/1")
+        val rejected = src(Provider.VIPER, stream = "s2", embed = "https://voe.sx/e/1")
+        val independent = src(Provider.J1F, stream = "s2", embed = "https://vidmoly.to/e/2")
+        val sorted = SourceSelector.playable(listOf(independent, rejected, accepted))
+        assertEquals(listOf(accepted, independent), sorted)
+    }
+
+    @Test
     fun deviceOnlyListsUnresolvedEmbeds() {
         val all = listOf(
             src(Provider.FSTREAM, stream = "s1", embed = "https://voe.sx/e/1"),
@@ -117,12 +126,29 @@ class SourceSelectorTest {
     }
 
     @Test
-    fun routeOrderKeptAmongHdAndWithoutProbe() {
+    fun bestQualityWinsAmongHdButRouteOrderBreaksTies() {
         val a = hls(Provider.FSTREAM, "vidzy")
         val b = hls(Provider.WIFLIX, "voe")
         val ranked = SourceSelector.playable(listOf(b, a))
+        // Sans information sur la qualité, on garde l'ordre habituel des routes.
         assertEquals(ranked, SourceSelector.byQuality(ranked, emptyMap()))
-        assertEquals(ranked, SourceSelector.byQuality(ranked, r(a to 720, b to 1080)))
+        // Si deux sources HD sont disponibles, la meilleure résolution prime.
+        assertEquals(listOf(b, a), SourceSelector.byQuality(ranked, r(a to 720, b to 1080)))
+        // Si les qualités sont égales, les priorités des routes restent stables.
+        assertEquals(ranked, SourceSelector.byQuality(ranked, r(a to 1080, b to 1080)))
+    }
+
+    @Test
+    fun fallbackPrefersDifferentHostWithoutChangingAudioLanguage() {
+        val broken = hls(Provider.FSTREAM, "voe")
+        val sameBrokenHost = hls(Provider.WIFLIX, "voe")
+        val otherHost = hls(Provider.J1F, "vidzy")
+        val otherLanguage = hls(Provider.FSTREAM, "uqload", Lang.VOSTFR)
+        val ordered = listOf(broken, sameBrokenHost, otherHost, otherLanguage)
+        assertEquals(otherHost, SourceSelector.afterFailure(ordered, setOf(broken.id), broken))
+        assertEquals(sameBrokenHost, SourceSelector.afterFailure(ordered, setOf(broken.id, otherHost.id), broken))
+        assertEquals(otherLanguage, SourceSelector.afterFailure(ordered, setOf(broken.id, sameBrokenHost.id, otherHost.id), broken))
+        assertNull(SourceSelector.afterFailure(ordered, ordered.map { it.id }.toSet(), broken))
     }
 
     @Test

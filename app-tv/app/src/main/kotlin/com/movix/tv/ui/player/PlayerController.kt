@@ -1,6 +1,7 @@
 package com.movix.tv.ui.player
 
 import android.util.Log
+import android.os.SystemClock
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
@@ -19,6 +20,7 @@ import androidx.media3.common.VideoSize
 import androidx.media3.common.text.CueGroup
 import androidx.media3.exoplayer.ExoPlaybackException
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.analytics.AnalyticsListener
 import com.movix.tv.AppContainer
 import com.movix.tv.data.local.Library
 import com.movix.tv.data.local.SubtitleStyle
@@ -30,11 +32,15 @@ import com.movix.tv.data.movix.Lang
 import com.movix.tv.data.movix.PlayRequest
 import com.movix.tv.data.movix.PlaybackSource
 import com.movix.tv.data.movix.SourceSelector
+import com.movix.tv.data.movix.SourceHealthTracker
 import com.movix.tv.data.movix.StreamKind
 import com.movix.tv.data.movix.SubtitleTrack
 import com.movix.tv.data.tmdb.Episode
 import com.movix.tv.data.tmdb.MediaType
+import com.movix.tv.player.AudioMode
+import com.movix.tv.player.SmartAudio
 import com.movix.tv.player.Codecs
+import com.movix.tv.player.VideoFrameHealth
 import com.movix.tv.player.SubtitleCue
 import com.movix.tv.player.qualityLabel
 import com.movix.tv.player.Subtitles
@@ -42,6 +48,7 @@ import com.movix.extract.Extraction
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -56,7 +63,13 @@ import okhttp3.Request
 
 /** Ce que le lecteur ouvre : la demande de sources et de quoi titrer l'écran. */
 @Immutable
-data class PlayTarget(val request: PlayRequest, val title: String, val backdropPath: String?)
+data class PlayTarget(
+    val request: PlayRequest,
+    val title: String,
+    val backdropPath: String?,
+    val directSource: PlaybackSource? = null,
+    val synopsis: String? = null,
+)
 
 enum class PlayerPhase { LOADING, NEED_VIP, NO_SOURCE, PLAYING }
 
@@ -145,6 +158,11 @@ class PlayerController(
 
     var isPlaying by mutableStateOf(false); private set
     var buffering by mutableStateOf(true); private set
+    /** La première source est préparée / bufferisée, sans démarrer automatiquement. */
+    var readyToLaunch by mutableStateOf(false); private set
+    private var userLaunchedPlayback = false
+    val preparingFirstPlayback: Boolean
+        get() = phase == PlayerPhase.PLAYING && !userLaunchedPlayback && !readyToLaunch
     var positionMs by mutableLongStateOf(0L); private set
     var durationMs by mutableLongStateOf(0L); private set
     var bufferedMs by mutableLongStateOf(0L); private set
@@ -210,14 +228,24 @@ class PlayerController(
     private var externalCues: List<SubtitleCue> = emptyList()
     private var embeddedCueText: String? = null
     private val failed = HashSet<String>()
+    private val hostHealth = SourceHealthTracker()
+    private val frameHealth = VideoFrameHealth()
+    private val smartAudio = SmartAudio()
+    var audioMode by mutableStateOf(AudioMode.from(container.store.values.value[UiKeys.AUDIO_MODE])); private set
+    var audioEffectAvailable by mutableStateOf(smartAudio.available); private set
     private var kindRetried = false
     private var loadJob: Job? = null
     private var startWatch: Job? = null
+    private var stallWatch: Job? = null
+    private var tickJob: Job? = null
+    /** Un blocage après le premier démarrage doit déclencher un repli, pas une attente infinie. */
+    private var readyOnCurrentSource = false
     private var subsJob: Job? = null
     private var noticeJob: Job? = null
     private var segmentsRequested = false
     private var metaWritten = false
     private var pendingStartMs = 0L
+    private var preparedAtMs = 0L
 
     private val listener = object : Player.Listener {
         override fun onIsPlayingChanged(playing: Boolean) {
@@ -227,10 +255,22 @@ class PlayerController(
 
         override fun onPlaybackStateChanged(state: Int) {
             buffering = state == Player.STATE_BUFFERING || state == Player.STATE_IDLE
-            if (state == Player.STATE_READY) {
-                startWatch?.cancel()
-                durationMs = player.duration.coerceAtLeast(0)
-                onReady()
+            when (state) {
+                Player.STATE_READY -> {
+                    readyOnCurrentSource = true
+                    startWatch?.cancel()
+                    stallWatch?.cancel()
+                    durationMs = player.duration.coerceAtLeast(0)
+                    readyToLaunch = !userLaunchedPlayback
+                    if (preparedAtMs > 0) {
+                        Log.i("MovixPerf", "media_ready_ms=${SystemClock.elapsedRealtime() - preparedAtMs}, video=${videoHeight}p")
+                    }
+                    onReady()
+                }
+                Player.STATE_BUFFERING -> {
+                    if (readyOnCurrentSource) watchForStall()
+                }
+                else -> stallWatch?.cancel()
             }
             if (state == Player.STATE_ENDED) {
                 saveProgress(ended = true)
@@ -238,12 +278,24 @@ class PlayerController(
             }
         }
 
+        override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
+            if (!playWhenReady) stallWatch?.cancel()
+            else if (player.playbackState == Player.STATE_BUFFERING && readyOnCurrentSource) watchForStall()
+        }
+
         override fun onPlayerError(error: PlaybackException) {
             Log.w("MovixPlayer", "erreur ${error.errorCodeName} sur ${current?.label}", error)
             val parsing = error.errorCode in PARSING_ERRORS
             val s = current ?: return
             if (error.errorCode in DECODER_ERRORS) {
-                // Pas de bascule automatique : on dit pourquoi et on laisse choisir.
+                // Décodeur impossible : tenter d'abord un autre hébergeur / codec
+                // plutôt que d'immobiliser le lecteur sur une erreur fatale.
+                if (SourceSelector.afterFailure(sources, failed + s.id, s) != null) {
+                    Log.w("MovixPlayer", "décodeur en échec, essai d'un autre lecteur")
+                    failOver()
+                    return
+                }
+                // Aucun repli : expliquer le format en cause et proposer le choix manuel.
                 val format = (error as? ExoPlaybackException)?.rendererFormat
                 val name = Codecs.displayName(format?.sampleMimeType, format?.codecs)
                 val video = format?.sampleMimeType?.let(Codecs::isVideo) ?: (error.errorCode != PlaybackException.ERROR_CODE_AUDIO_TRACK_INIT_FAILED)
@@ -251,7 +303,7 @@ class PlayerController(
                 reportFormatIssue(if (video) FormatIssue(name, null) else FormatIssue(null, name))
                 return
             }
-            if (parsing && !kindRetried) {
+            if (parsing && !kindRetried && s.kind != StreamKind.DASH) {
                 // Les URL du relais n'ont pas d'extension : on a peut-être pris
                 // un fichier MP4 pour du HLS, ou l'inverse. Un essai avec l'autre type.
                 kindRetried = true
@@ -283,12 +335,83 @@ class PlayerController(
         }
     }
 
+    /**
+     * Des images qui tombent en continu indiquent souvent une source trop
+     * exigeante à décoder, distincte d'une panne réseau (STATE_BUFFERING).
+     * L'ajustement des pistes HLS/DASH ne redémarre pas le lecteur et ne fait
+     * pas perdre la position ; une vraie bascule reste le dernier recours.
+     */
+    private val analyticsListener = object : AnalyticsListener {
+        override fun onAudioSessionIdChanged(eventTime: AnalyticsListener.EventTime, audioSessionId: Int) {
+            smartAudio.onAudioSession(audioSessionId)
+            audioEffectAvailable = smartAudio.available
+        }
+
+        override fun onVideoDecoderInitialized(
+            eventTime: AnalyticsListener.EventTime,
+            decoderName: String,
+            initializedTimestampMs: Long,
+            initializationDurationMs: Long,
+        ) {
+            // Pour distinguer un décodage matériel du décodage logiciel.
+            Log.i("MovixPerf", "video_decoder=$decoderName init_ms=$initializationDurationMs")
+        }
+
+        override fun onVideoCodecError(eventTime: AnalyticsListener.EventTime, videoCodecError: Exception) {
+            // Media3 peut récupérer cette erreur : ne pas relancer ici.
+            Log.w("MovixPerf", "video_codec_error=${videoCodecError.javaClass.simpleName}", videoCodecError)
+        }
+
+        override fun onDroppedVideoFrames(
+            eventTime: AnalyticsListener.EventTime,
+            droppedFrames: Int,
+            elapsedMs: Long,
+        ) {
+            if (phase != PlayerPhase.PLAYING || !player.playWhenReady || current == null) return
+            when (frameHealth.observe(droppedFrames, elapsedMs)) {
+                VideoFrameHealth.Action.NONE -> Unit
+                VideoFrameHealth.Action.LIMIT_1080P -> {
+                    // La priorité est au décodage, pas aux extractions en fond.
+                    extractAllJob?.cancel()
+                    Log.w("MovixPerf", "nombreuses images perdues : limitation à 1080p")
+                    player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
+                        .setMaxVideoSize(1920, 1080).setMaxVideoFrameRate(30).build()
+                }
+                VideoFrameHealth.Action.LIMIT_720P -> {
+                    Log.w("MovixPerf", "images toujours perdues : limitation à 720p")
+                    player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
+                        .setMaxVideoSize(1280, 720).setMaxVideoFrameRate(30).build()
+                }
+                VideoFrameHealth.Action.SWITCH_SOURCE -> {
+                    val s = current ?: return
+                    if (SourceSelector.afterFailure(sources, failed + s.id, s) != null) {
+                        Log.w("MovixPerf", "décodage toujours trop lent : autre source")
+                        failOver()
+                    } else {
+                        Log.w("MovixPerf", "décodage trop lent mais aucune autre source disponible")
+                    }
+                }
+            }
+        }
+    }
+
     init {
         player.addListener(listener)
+        player.addAnalyticsListener(analyticsListener)
+        // Une mise à jour provenant des réglages ou du changement de profil
+        // prend effet sans recréer le lecteur ni modifier le volume de sortie.
+        scope.launch {
+            container.store.values.collect { map ->
+                val requested = AudioMode.from(map[UiKeys.AUDIO_MODE])
+                audioMode = requested
+                smartAudio.setMode(requested)
+                audioEffectAvailable = smartAudio.available
+            }
+        }
         // Pistes de texte du flux coupées par défaut : seules les choisies s'affichent.
         player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
             .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true).build()
-        scope.launch { tick() }
+        tickJob = scope.launch { tick() }
         load()
     }
 
@@ -303,7 +426,12 @@ class PlayerController(
         loadJob?.cancel()
         deviceJob?.cancel()
         extractAllJob?.cancel()
+        startWatch?.cancel()
+        stallWatch?.cancel()
+        readyOnCurrentSource = false
         phase = PlayerPhase.LOADING
+        userLaunchedPlayback = false
+        readyToLaunch = false
         loadingText = com.movix.tv.R.string.player_loading
         extracted.clear(); inFlight.values.forEach { it.cancel() }; inFlight.clear(); extractingId = null
         sources = emptyList(); deviceSources = emptyList(); webSources = emptyList(); webSource = null; current = null
@@ -313,9 +441,15 @@ class PlayerController(
         chooseSubtitle(SubtitleChoice.Off)
         player.stop()
         loadJob = scope.launch {
+            target.directSource?.let { direct ->
+                sources = listOf(direct)
+                phase = PlayerPhase.PLAYING
+                play(direct, 0L)
+                return@launch
+            }
             launch { loadMeta() }
             // Ouvert sans titre (reprise d'une entrée venue du site) : on le complète.
-            if (target.title.isBlank() || target.backdropPath == null) launch {
+            if (target.directSource == null && (target.title.isBlank() || target.backdropPath == null)) launch {
                 val d = runCatching { container.catalog.details(target.request.type, target.request.tmdbId) }.getOrNull() ?: return@launch
                 target = target.copy(title = target.title.ifBlank { d.item.title }, backdropPath = target.backdropPath ?: d.item.backdropPath)
             }
@@ -358,7 +492,7 @@ class PlayerController(
             val ratings = withContext(Dispatchers.Default) {
                 variants.mapNotNull { (id, v) -> SourceSelector.rate(v, container.codecSupport::supports)?.let { id to it } }.toMap()
             }
-            sources = SourceSelector.byQuality(ranked, ratings)
+            sources = SourceSelector.preferHealthy(SourceSelector.byQuality(ranked, ratings), hostHealth::isCoolingDown)
             val first = SourceSelector.pick(sources, req.isTv)
             Log.i("MovixPlayer", "sources lues ${ratings.size} : " + sources.take(8).joinToString { s ->
                 val r = ratings[s.id]
@@ -389,8 +523,16 @@ class PlayerController(
         extractAllJob?.cancel()
         val todo = SourceSelector.deviceCandidates(deviceSources).filter { s -> sources.none { it.id == s.id } }
         if (todo.isEmpty()) return
+        // Sur appareils modestes, QuickJS et les requêtes réseau de fond
+        // concurrencent le décodage et peuvent entraîner un arrêt mémoire.
+        // Les liens restent extractibles à la demande et lors d'un repli.
+        if (container.playerEngine.lowRam) return
         extractAllJob = scope.launch {
-            val permits = kotlinx.coroutines.sync.Semaphore(2)
+            // Ne pas lancer de scripts pendant la préparation et les premières
+            // secondes du film : laisser le décodeur et les buffers se stabiliser.
+            delay(20_000)
+            if (phase != PlayerPhase.PLAYING || !player.isPlaying) return@launch
+            val permits = kotlinx.coroutines.sync.Semaphore(1)
             todo.map { s ->
                 launch {
                     permits.acquire()
@@ -450,6 +592,8 @@ class PlayerController(
     fun cachedEpisodes(season: Int): List<Episode>? = seasonEpisodes[season]
 
     private fun play(source: PlaybackSource, startMs: Long) {
+        frameHealth.reset()
+        readyToLaunch = false
         current = source
         kindRetried = false
         formatIssue = null
@@ -461,23 +605,59 @@ class PlayerController(
 
     private fun prepare(source: PlaybackSource, startMs: Long) {
         pendingStartMs = startMs
+        preparedAtMs = SystemClock.elapsedRealtime()
+        // Repartir avec un délai complet pour la nouvelle source (ou son autre format).
+        readyOnCurrentSource = false
+        stallWatch?.cancel()
         player.setMediaSource(container.playerEngine.mediaSource(source.streamUrl!!, source.kind, source.headers), startMs)
         player.prepare()
-        player.playWhenReady = true
+        // Exige une confirmation sur l'écran de préparation pour le premier
+        // lancement. Une panne APRÈS lancement conserve le comportement auto.
+        player.playWhenReady = userLaunchedPlayback
         player.setPlaybackSpeed(speed)
         startWatch?.cancel()
         // 45 s sans démarrer : source suivante (même règle que le lecteur du site).
+        val watchedId = source.id
         startWatch = scope.launch {
             delay(45_000)
-            if (player.playbackState != Player.STATE_READY) failOver()
+            if (current?.id == watchedId && phase == PlayerPhase.PLAYING &&
+                player.playbackState != Player.STATE_READY
+            ) failOver()
+        }
+    }
+
+    /**
+     * Un flux peut démarrer normalement puis cesser de fournir des segments sans
+     * émettre d'erreur Media3. Après 30 s de rebuffering, on essaie la source
+     * suivante et on conserve la position. Aucune bascule pendant une pause.
+     */
+    private fun watchForStall() {
+        stallWatch?.cancel()
+        val watchedId = current?.id ?: return
+        if (phase != PlayerPhase.PLAYING || !player.playWhenReady ||
+            webSource != null || formatIssue != null
+        ) return
+        stallWatch = scope.launch {
+            delay(30_000)
+            if (current?.id == watchedId && readyOnCurrentSource &&
+                phase == PlayerPhase.PLAYING && player.playWhenReady &&
+                player.playbackState == Player.STATE_BUFFERING &&
+                webSource == null && formatIssue == null
+            ) {
+                Log.w("MovixPlayer", "flux bloqué après démarrage : ${current?.label}, repli")
+                failOver()
+            }
         }
     }
 
     private fun failOver() {
         val s = current ?: return
+        stallWatch?.cancel()
+        readyOnCurrentSource = false
         failed += s.id
+        hostHealth.recordFailure(s.host)
         val position = player.currentPosition.takeIf { it > 0 } ?: pendingStartMs
-        val nextSource = sources.firstOrNull { it.id !in failed }
+        val nextSource = SourceSelector.afterFailure(sources, failed, s)
         showNotice(com.movix.tv.R.string.player_source_failed)
         if (nextSource != null) {
             play(nextSource, position)
@@ -565,7 +745,7 @@ class PlayerController(
     )
 
     private fun onReady() {
-        if (!metaWritten) {
+        if (!metaWritten && target.directSource == null) {
             metaWritten = true
             container.appScope.launch {
                 // Reprise depuis une entrée sans fiche : titre et image demandés à TMDB,
@@ -592,7 +772,7 @@ class PlayerController(
                 )
             }
         }
-        if (!segmentsRequested && durationMs > 0) {
+        if (target.directSource == null && !segmentsRequested && durationMs > 0) {
             segmentsRequested = true
             scope.launch { loadSegments() }
         }
@@ -672,7 +852,7 @@ class PlayerController(
     }
 
     fun saveProgress(ended: Boolean = false) {
-        if (phase != PlayerPhase.PLAYING) return
+        if (phase != PlayerPhase.PLAYING || target.directSource != null) return
         val dur = (player.duration.takeIf { it > 0 } ?: return) / 1000.0
         val pos = if (ended) dur else player.currentPosition / 1000.0
         val key = progressKey
@@ -689,7 +869,28 @@ class PlayerController(
 
     // ---------- commandes ----------
 
+    /** Confirmation explicite, uniquement lorsque Media3 a fini la préparation. */
+    fun chooseAudioMode(mode: AudioMode) {
+        audioMode = mode
+        smartAudio.setMode(mode)
+        audioEffectAvailable = smartAudio.available
+        container.appScope.launch {
+            container.store.set(UiKeys.AUDIO_MODE, mode.id.takeUnless { it == AudioMode.OFF.id })
+        }
+    }
+
+    fun launchPlayback() {
+        if (!readyToLaunch || player.playbackState != Player.STATE_READY) return
+        userLaunchedPlayback = true
+        readyToLaunch = false
+        player.playWhenReady = true
+    }
+
     fun togglePlay() {
+        if (!userLaunchedPlayback) {
+            launchPlayback()
+            return
+        }
         if (player.playbackState == Player.STATE_ENDED) player.seekTo(0)
         player.playWhenReady = !player.playWhenReady
     }
@@ -1004,9 +1205,19 @@ class PlayerController(
     fun release() {
         saveProgress()
         startWatch?.cancel()
+        stallWatch?.cancel()
+        tickJob?.cancel()
         loadJob?.cancel()
+        deviceJob?.cancel()
         extractAllJob?.cancel()
+        subsJob?.cancel()
+        translateJob?.cancel()
+        noticeJob?.cancel()
+        inFlight.values.forEach { it.cancel() }
+        inFlight.clear()
         player.removeListener(listener)
+        player.removeAnalyticsListener(analyticsListener)
+        smartAudio.release()
         player.release()
     }
 

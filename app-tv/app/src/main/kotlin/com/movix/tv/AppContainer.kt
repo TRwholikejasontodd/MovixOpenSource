@@ -9,6 +9,7 @@ import com.movix.tv.data.account.SwiftFluxClient
 import com.movix.tv.data.account.SyncManager
 import com.movix.tv.data.imdb.ImdbSuggestions
 import com.movix.tv.data.local.LocalStore
+import com.movix.tv.data.local.LocalProfiles
 import kotlinx.coroutines.launch
 import com.movix.tv.data.local.TvKeys
 import com.movix.tv.data.movix.MovixApi
@@ -69,6 +70,7 @@ class AppContainer(context: Context) {
     val http: OkHttpClient = baseHttp.newBuilder().addInterceptor(ApiHostInterceptor(apiHost)).build()
 
     val store = LocalStore(context, appScope)
+    val localProfiles = LocalProfiles(store)
 
     /** Clé saisie dans les réglages, sinon celle du site intégrée au build (voir app/build.gradle.kts). */
     fun tmdbKey(): String? = store.get(TvKeys.TMDB_KEY)?.takeIf { it.isNotBlank() }

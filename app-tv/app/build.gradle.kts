@@ -124,12 +124,14 @@ android {
         }
     }
 
-    // Un APK par ABI : la plupart des Fire TV Sticks ont un système 32 bits.
+    // Deux APK Android TV, issus du même code et des mêmes ressources :
+    // armeabi-v7a pour les anciennes TV 32 bits ; arm64-v8a pour les TV 64 bits.
+    // Ne pas générer d'APK universel lourd inutile sur télévision.
     splits {
         abi {
             isEnable = true
             reset()
-            include("armeabi-v7a", "arm64-v8a", "x86")
+            include("armeabi-v7a", "arm64-v8a")
             isUniversalApk = false
         }
     }
@@ -251,6 +253,23 @@ val prepareCurlImpersonate = tasks.register<PrepareCurlImpersonate>("prepareCurl
 }
 tasks.named("preBuild") { dependsOn(prepareCurlImpersonate) }
 
+// L'APK ne doit jamais contenir une autre voix que la bande-son n°6 approuvée.
+// Contrôle indépendant du codec ou de la voix Android : octets identiques.
+val verifyMyoIntroVoice = tasks.register("verifyMyoIntroVoice") {
+    val soundtrack = layout.projectDirectory.file("src/main/res/raw/myo_intro_voice6.mp3")
+    inputs.file(soundtrack)
+    doLast {
+        val audio = soundtrack.asFile
+        check(audio.isFile) { "Piste MYO n°6 absente de res/raw" }
+        val actual = MessageDigest.getInstance("SHA-256")
+            .digest(audio.readBytes()).joinToString("") { "%02x".format(it) }
+        check(actual == "2f7344884618244b5b5ac185d0bf5887115638620a3d9433fe699821e7e03c39") {
+            "Piste audio MYO différente de la voix n°6 approuvée : $actual"
+        }
+    }
+}
+tasks.named("preBuild") { dependsOn(verifyMyoIntroVoice) }
+
 kotlin {
     jvmToolchain(17)
 }
@@ -287,6 +306,7 @@ dependencies {
     // contrôles et sous-titres sont dessinés en Compose.
     implementation(libs.media3.exoplayer)
     implementation(libs.media3.hls)
+    implementation(libs.media3.dash)
     implementation(libs.media3.okhttp)
     // Son Dolby / DTS décodé par l'appli quand la télé ne sait ni le décoder ni
     // l'envoyer à l'ampli (module ffmpeg/, environ 1,1 Mo par ABI).

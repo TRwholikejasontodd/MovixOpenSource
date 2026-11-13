@@ -31,7 +31,7 @@ import java.util.concurrent.Executors
  * ([CurlImpersonateDataSource]) → en-têtes par hôte ([MediaHeaders]) →
  * déballage des segments PNG+MPEG-TS ([PngTsDataSource]).
  */
-class PlayerEngine(private val context: Context, private val http: OkHttpClient, private val lowRam: Boolean) {
+class PlayerEngine(private val context: Context, private val http: OkHttpClient, val lowRam: Boolean) {
     private val cronetExecutor by lazy { Executors.newFixedThreadPool(4) }
 
     /**
@@ -89,7 +89,7 @@ class PlayerEngine(private val context: Context, private val http: OkHttpClient,
         // Buffer plafonné en octets : sur 1 Go de RAM, un flux 1080p remplit
         // 50 s de tampon (≈ 60 Mo) et le système tue l'appli.
         val loadControl = DefaultLoadControl.Builder()
-            .setTargetBufferBytes(if (lowRam) 16 * 1024 * 1024 else 48 * 1024 * 1024)
+            .setTargetBufferBytes(if (lowRam) 16 * 1024 * 1024 else 32 * 1024 * 1024)
             .setPrioritizeTimeOverSizeThresholds(false)
             .setBufferDurationsMs(15_000, if (lowRam) 30_000 else 50_000, 1_500, 3_000)
             .build()
@@ -98,6 +98,14 @@ class PlayerEngine(private val context: Context, private val http: OkHttpClient,
                 // Jamais plus que l'écran : décoder du 4K pour un écran 1080p
                 // sature les petits SoC.
                 .setViewportSizeToPhysicalDisplaySize(true)
+                // Sur une TV classée "low RAM", les pistes adaptatives trop
+                // lourdes ne doivent pas saturer le décodeur et la mémoire.
+                .apply {
+                    if (lowRam) {
+                        setMaxVideoSize(1920, 1080)
+                        setMaxVideoFrameRate(30)
+                    }
+                }
                 .setPreferredAudioLanguages("fr", "fre", "fra")
                 .build()
         }
@@ -135,7 +143,11 @@ class PlayerEngine(private val context: Context, private val http: OkHttpClient,
     fun mediaSource(url: String, kind: StreamKind, headers: Map<String, String> = emptyMap()): MediaSource {
         val item = MediaItem.Builder()
             .setUri(url)
-            .setMimeType(if (kind == StreamKind.HLS) MimeTypes.APPLICATION_M3U8 else null)
+            .setMimeType(when (kind) {
+                StreamKind.HLS -> MimeTypes.APPLICATION_M3U8
+                StreamKind.DASH -> MimeTypes.APPLICATION_MPD
+                StreamKind.FILE -> null
+            })
             .build()
         return DefaultMediaSourceFactory(dataSourceFactory(headers)).createMediaSource(item)
     }

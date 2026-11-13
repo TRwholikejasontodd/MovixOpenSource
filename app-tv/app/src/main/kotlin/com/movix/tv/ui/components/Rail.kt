@@ -35,6 +35,11 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
@@ -58,6 +63,8 @@ private val Entries = listOf(
     RailEntry(Section.MOVIES, MovixIcons.Film, R.string.nav_movies),
     RailEntry(Section.SERIES, MovixIcons.Tv, R.string.nav_series),
     RailEntry(Section.ANIME, MovixIcons.Spark, R.string.nav_anime),
+    RailEntry(Section.IPTV, MovixIcons.Tv, R.string.nav_iptv),
+    RailEntry(Section.CLASSICS, MovixIcons.Film, R.string.nav_classics),
     RailEntry(Section.WATCHLIST, MovixIcons.Plus, R.string.nav_watchlist),
 )
 private val SettingsEntry = RailEntry(Section.SETTINGS, MovixIcons.Gear, R.string.nav_settings)
@@ -122,10 +129,10 @@ fun Rail(
             .onFocusChanged { expanded = it.hasFocus; onFocusChanged(it.hasFocus) }
             .focusGroup()
             .padding(top = 26.dp, bottom = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Image(
-            painterResource(R.drawable.ic_movix_mark),
+            painterResource(R.drawable.ic_sonic_mark),
             contentDescription = null,
             modifier = Modifier.padding(start = 13.dp, bottom = 12.dp).size(34.dp),
         )
@@ -144,6 +151,7 @@ fun Rail(
 private fun RailItem(entry: RailEntry, isCurrent: Boolean, expanded: Boolean, requester: FocusRequester?, onClick: () -> Unit) {
     val source = remember { MutableInteractionSource() }
     val focused by source.collectIsFocusedAsState()
+    val label = stringResource(entry.label)
     val fg = when {
         focused -> MovixColors.Ink
         isCurrent || expanded -> MovixColors.Text
@@ -151,21 +159,26 @@ private fun RailItem(entry: RailEntry, isCurrent: Boolean, expanded: Boolean, re
     }
     Box(Modifier.padding(start = 13.dp)) {
         if (isCurrent) {
-            Box(Modifier.offset(x = (-13).dp, y = 9.dp).size(3.dp, 16.dp).background(MovixColors.Red, RoundedCornerShape(2.dp)))
+            Box(Modifier.offset(x = (-13).dp, y = 14.dp).size(3.dp, 16.dp).background(MovixColors.Red, RoundedCornerShape(2.dp)))
         }
         Row(
             Modifier
                 .then(if (requester != null) Modifier.focusRequester(requester) else Modifier)
-                .height(34.dp)
-                .then(if (expanded) Modifier.width(180.dp) else Modifier.width(34.dp))
+                .height(44.dp)
+                .then(if (expanded) Modifier.width(194.dp) else Modifier.width(44.dp))
                 .background(if (focused) MovixColors.Text else MovixColors.Ink.copy(alpha = 0f), RoundedCornerShape(10.dp))
+                .semantics {
+                    role = Role.Button
+                    contentDescription = label
+                    selected = isCurrent
+                }
                 .clickable(interactionSource = source, indication = null, onClick = onClick)
                 .padding(horizontal = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Image(rememberVectorPainter(entry.icon), null, Modifier.size(18.dp), colorFilter = ColorFilter.tint(fg))
-            if (expanded) Text(stringResource(entry.label), style = MovixType.Button.copy(color = fg), maxLines = 1)
+            Image(rememberVectorPainter(entry.icon), null, Modifier.size(20.dp), colorFilter = ColorFilter.tint(fg))
+            if (expanded) Text(label, style = MovixType.Button.copy(color = fg), maxLines = 1)
         }
     }
 }

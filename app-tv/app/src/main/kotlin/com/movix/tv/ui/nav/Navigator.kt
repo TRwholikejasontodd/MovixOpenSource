@@ -7,7 +7,7 @@ import com.movix.tv.data.tmdb.MediaType
 import com.movix.tv.ui.player.PlayTarget
 
 /** Sections du rail. */
-enum class Section { SEARCH, HOME, MOVIES, SERIES, ANIME, WATCHLIST, SETTINGS }
+enum class Section { SEARCH, HOME, MOVIES, SERIES, ANIME, IPTV, CLASSICS, WATCHLIST, SETTINGS }
 
 sealed interface Route {
     data class Main(val section: Section) : Route

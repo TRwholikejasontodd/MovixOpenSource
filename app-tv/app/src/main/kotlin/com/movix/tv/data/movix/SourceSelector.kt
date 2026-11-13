@@ -30,7 +30,7 @@ object SourceSelector {
         s.provider == Provider.PURSTREAM -> 2
         s.provider == Provider.KISSKH -> 4
         s.provider == Provider.LINKS && s.embedUrl == null -> 3 // fichier MP4 communautaire
-        s.kind == StreamKind.HLS -> 0
+        s.kind == StreamKind.HLS || s.kind == StreamKind.DASH -> 0
         else -> 1
     }
 
@@ -51,7 +51,17 @@ object SourceSelector {
         val seenStream = HashSet<String>()
         val seenEmbed = HashSet<String>()
         return all.filter { it.playable }.sortedWith(comparator).filter { s ->
-            seenStream.add(s.streamUrl!!) && (s.embedUrl == null || seenEmbed.add(s.embedUrl))
+            val stream = s.streamUrl!!
+            val embed = s.embedUrl
+            if (stream in seenStream || (embed != null && embed in seenEmbed)) {
+                false
+            } else {
+                // N'enregistrer les identifiants qu'une fois la source acceptée.
+                // Un doublon d'embed ne doit pas masquer un autre flux valide.
+                seenStream.add(stream)
+                if (embed != null) seenEmbed.add(embed)
+                true
+            }
         }
     }
 
@@ -107,6 +117,39 @@ object SourceSelector {
 
     private fun startable(s: PlaybackSource, isTv: Boolean) =
         s.provider != Provider.COFLIX && (isTv || s.provider != Provider.KISSKH)
+
+    /**
+     * En cas d'échec, éviter de réessayer immédiatement un lecteur du même
+     * hébergeur lorsqu'un autre hébergeur est disponible dans la même langue.
+     * Le classement initial (qualité, compatibilité, fournisseur) est conservé
+     * entre les candidats équivalents. Un hébergeur inconnu ne passe pas
+     * artificiellement devant un hébergeur identifié.
+     */
+    /**
+     * Une panne répétée écarte temporairement son hébergeur pour les futurs
+     * titres de la même séance, sans jamais changer la priorité VF/VOSTFR/VO.
+     */
+    fun preferHealthy(
+        ranked: List<PlaybackSource>,
+        coolingDown: (String?) -> Boolean,
+    ): List<PlaybackSource> = ranked.withIndex().sortedWith(compareBy(
+        { LANG_RANK[it.value.language] ?: 9 },
+        { if (coolingDown(it.value.host)) 1 else 0 },
+        { it.index },
+    )).map { it.value }
+
+    fun afterFailure(
+        playable: List<PlaybackSource>,
+        failedIds: Set<String>,
+        previous: PlaybackSource?,
+    ): PlaybackSource? {
+        val remaining = playable.filter { it.id !in failedIds }
+        if (remaining.isEmpty()) return null
+        val sameLanguage = previous?.language?.let { lang -> remaining.filter { it.language == lang } }.orEmpty()
+        val candidates = sameLanguage.ifEmpty { remaining }
+        val failedHost = previous?.host?.takeIf { it.isNotBlank() } ?: return candidates.first()
+        return candidates.firstOrNull { it.host != null && it.host != failedHost } ?: candidates.first()
+    }
 
     /** Hauteur équivalente (voir [HlsMaster.equivalentHeight]) à partir de laquelle une source est « HD ». */
     const val HD_HEIGHT = 720
@@ -181,7 +224,10 @@ object SourceSelector {
                     else -> 2
                 }
             },
-            { height(it)?.takeIf { h -> h < HD_HEIGHT }?.let { h -> -h } ?: 0 },
+            // À langue et compatibilité égales, choisir la meilleure résolution réelle.
+            // Avant : toutes les sources >= 720p étaient ex æquo et le fournisseur
+            // pouvait faire passer une 720p devant une 1080p/4K.
+            { -(height(it) ?: 0) },
         ))
     }
 }

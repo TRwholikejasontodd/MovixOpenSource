@@ -39,6 +39,7 @@ import androidx.tv.material3.Text
 import com.movix.tv.R
 import com.movix.tv.container
 import com.movix.tv.data.local.AccentColor
+import com.movix.tv.player.AudioMode
 import com.movix.tv.data.local.HomeRows
 import com.movix.tv.data.local.SubtitleStyle
 import com.movix.tv.data.local.UiKeys
@@ -92,7 +93,7 @@ internal fun AppearancePane() {
                 ColorSwatch(
                     color = Color(accent.argb),
                     selected = accent == current,
-                    onClick = { write(UiKeys.ACCENT, if (accent == AccentColor.RED) null else accent.id) },
+                    onClick = { write(UiKeys.ACCENT, if (accent == AccentColor.PURPLE) null else accent.id) },
                     onFocused = { focusedColor = accent },
                 )
             }
@@ -101,6 +102,26 @@ internal fun AppearancePane() {
         // Nom de la pastille sous le focus, sinon celui de la couleur choisie.
         val shown = focusedColor ?: current
         Text(stringResource(AccentNames.getValue(shown)), style = MovixType.MetaStrong)
+    }
+}
+
+// ---------------------------------------------------------------- Accessibilité
+
+@Composable
+internal fun AccessibilityPane() {
+    val (values, write) = rememberUiValues()
+    val reduceMotion = UiPrefs.flag(values, UiKeys.REDUCE_MOTION, default = false)
+    Column(PaneScroll.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        PaneHeader(
+            stringResource(R.string.settings_accessibility_title),
+            stringResource(R.string.settings_accessibility_body),
+        )
+        ToggleRow(
+            stringResource(R.string.accessibility_reduce_motion),
+            reduceMotion,
+            { write(UiKeys.REDUCE_MOTION, if (reduceMotion) null else "1") },
+            body = stringResource(R.string.accessibility_reduce_motion_body),
+        )
     }
 }
 
@@ -237,7 +258,7 @@ internal fun HomePane() {
                 "",
                 listOf(0, 2, 5, 10, 30).map { it to if (it == 0) stringResource(R.string.home_screensaver_off) else stringResource(R.string.home_screensaver_min, it) },
                 minutes,
-                { write(UiKeys.SCREENSAVER_MIN, if (it == 5) null else it.toString()) },
+                { write(UiKeys.SCREENSAVER_MIN, if (it == 10) null else it.toString()) },
             )
         }
         Spacer(Modifier.height(10.dp))
@@ -318,5 +339,16 @@ internal fun PlaybackPane() {
             { write(UiKeys.AUTOPLAY_NEXT, if (autoplay) "0" else null) },
             body = stringResource(R.string.playback_autoplay_body),
         )
+        if (android.os.Build.VERSION.SDK_INT >= 28) {
+            Spacer(Modifier.height(12.dp))
+            Text("Contrôle intelligent du son", style = MovixType.Button)
+            Text("Compression facultative, uniquement si le circuit audio Android la prend en charge. Son original en cas d'échec.", style = MovixType.Meta)
+            ChoiceRow(
+                "",
+                AudioMode.entries.map { it to it.title },
+                AudioMode.from(values[UiKeys.AUDIO_MODE]),
+                { write(UiKeys.AUDIO_MODE, it.id.takeUnless { id -> id == AudioMode.OFF.id }) },
+            )
+        }
     }
 }

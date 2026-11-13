@@ -10,6 +10,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import BrowserScreen from './screens/BrowserScreen';
+import MyoPremiumIntro from './components/MyoPremiumIntro';
 import UpdateScreen from './screens/UpdateScreen';
 import UpdateDialog from './components/UpdateDialog';
 import { useAppUpdate } from './hooks/useAppUpdate';
@@ -99,6 +100,7 @@ function promptDns(): Promise<void> {
 
 export default function App() {
   const [ready, setReady] = useState(false);
+  const [showMyoIntro, setShowMyoIntro] = useState(true);
   const [dnsSettled, setDnsSettled] = useState(false);
 
   // Le tampon natif du journal réseau part éteint à chaque démarrage : sans ce
@@ -178,6 +180,9 @@ export default function App() {
       <AddressProvider>
         <AppShell dnsSettled={dnsSettled} />
       </AddressProvider>
+      {Platform.OS === 'ios' && showMyoIntro && (
+        <MyoPremiumIntro onFinish={() => setShowMyoIntro(false)} />
+      )}
     </SafeAreaProvider>
   );
 }

@@ -28,6 +28,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.delay
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.withFrameNanos
@@ -42,10 +43,13 @@ import com.movix.tv.ui.components.Rail
 import com.movix.tv.ui.components.firstVisibleSection
 import com.movix.tv.ui.components.railHiddenSections
 import com.movix.tv.ui.profiles.ProfilePickerScreen
+import com.movix.tv.ui.profiles.LocalProfileScreen
 import kotlinx.coroutines.launch
+import com.movix.tv.ui.classics.ClassicsScreen
 import com.movix.tv.ui.details.DetailsScreen
 import com.movix.tv.ui.home.BrowseScreen
 import com.movix.tv.ui.home.WatchlistScreen
+import com.movix.tv.ui.iptv.IptvScreen
 import com.movix.tv.ui.nav.Navigator
 import com.movix.tv.ui.nav.Route
 import com.movix.tv.ui.nav.Section
@@ -77,6 +81,10 @@ fun MovixRoot(onExit: () -> Unit) {
     // « Qui regarde ? » : au lancement (compte à plusieurs profils) ou depuis
     // Réglages › Compte. Rien n'est affiché avant de savoir s'il faut le montrer.
     var started by remember { mutableStateOf(false) }
+    var introFinished by remember { mutableStateOf(false) }
+    // L'initialisation des profils continue en parallèle de l'intro.
+    // L'écran suivant arrive sur le signal de fin de l'animation, et non
+    // après un second délai indépendant qui pourrait couper le son.
     var picker by remember { mutableStateOf<ProfilePickerFrom?>(null) }
     var refocusContent by remember { mutableIntStateOf(0) }
     val closePicker = {
@@ -86,6 +94,7 @@ fun MovixRoot(onExit: () -> Unit) {
 
     BackHandler {
         when {
+            !started || !introFinished -> Unit
             nav.pop() -> Unit
             !railFocused -> runCatching { railRequester.requestFocus() }
             else -> onExit()
@@ -96,10 +105,18 @@ fun MovixRoot(onExit: () -> Unit) {
     // léger zoom. Toutes les sections partagent une clé : changer de section ne
     // recrée pas le rail (il perdrait le focus). Mode léger : fondu seul.
     val lowRam = LocalLowRam.current
-    if (!started) {
-        Box(Modifier.fillMaxSize().background(MovixColors.Ink))
+    if (!started || !introFinished) {
+        MyoSplash(
+            waitingForData = !started,
+            modifier = Modifier.fillMaxSize(),
+            onIntroFinished = { introFinished = true },
+        )
     } else if (picker != null) {
-        ProfilePickerScreen(onDone = closePicker, onBack = closePicker)
+        if (container.accounts.current == null) {
+            LocalProfileScreen(onDone = closePicker, onBack = closePicker)
+        } else {
+            ProfilePickerScreen(onDone = closePicker, onBack = closePicker)
+        }
     } else AnimatedContent(
         targetState = nav.current,
         contentKey = { r ->
@@ -133,6 +150,8 @@ fun MovixRoot(onExit: () -> Unit) {
                             onSwitchProfile = { picker = ProfilePickerFrom.SETTINGS },
                         )
                         Section.WATCHLIST -> WatchlistScreen(onOpen = { nav.push(Route.Details(it.type, it.id, it)) }, onEmptyBack = { railRequester.requestFocus() }, modifier = contentModifier.padding(start = 60.dp))
+                        Section.CLASSICS -> ClassicsScreen(onPlay = { nav.push(Route.Player(it)) }, modifier = contentModifier.padding(start = 60.dp))
+                        Section.IPTV -> IptvScreen(modifier = contentModifier)
                         else -> BrowseScreen(
                             section = route.section,
                             onOpen = { nav.push(Route.Details(it.type, it.id, it)) },
@@ -187,7 +206,10 @@ fun MovixRoot(onExit: () -> Unit) {
             container.store.writeAll(mapOf(TvKeys.LINK_PROMPTED to "1"))
             nav.push(Route.Link)
         }
-        if (container.accounts.current != null && UiPrefs.flag(saved, UiKeys.PROFILE_PROMPT)) {
+        if (container.accounts.current == null) {
+            container.localProfiles.ensureDefault()
+            picker = ProfilePickerFrom.LOCAL
+        } else if (UiPrefs.flag(saved, UiKeys.PROFILE_PROMPT)) {
             // Profils gardés sur la télé : l'écran s'ouvre sans attendre le réseau.
             // Sans liste encore (première fois), elle est seulement rapatriée :
             // l'écran viendra au prochain lancement plutôt qu'en pleine navigation.
@@ -209,4 +231,4 @@ fun MovixRoot(onExit: () -> Unit) {
 }
 
 /** D'où vient « Qui regarde ? ». */
-private enum class ProfilePickerFrom { LAUNCH, SETTINGS }
+private enum class ProfilePickerFrom { LAUNCH, SETTINGS, LOCAL }

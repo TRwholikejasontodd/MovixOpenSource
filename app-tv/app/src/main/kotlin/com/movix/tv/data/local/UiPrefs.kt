@@ -20,10 +20,14 @@ object UiKeys {
     const val AUTOPLAY_NEXT = "movix_tv_autoplay_next"
     /** Bande-annonce muette dans le bandeau de l'accueil : "1" (défaut) ou "0". */
     const val BANNER_VIDEO = "movix_tv_banner_video"
-    /** Écran de veille après N minutes sans touche : nombre, "0" = coupé ; défaut 5. */
+    /** Écran de veille après N minutes sans touche : nombre, "0" = coupé ; défaut 10. */
     const val SCREENSAVER_MIN = "movix_tv_screensaver_min"
     /** Demander « Qui regarde ? » au lancement : "1" (défaut si le compte a plusieurs profils) ou "0". */
     const val PROFILE_PROMPT = "movix_tv_profile_prompt"
+    /** Préférence locale du compresseur audio (sans garantie de prise en charge). */
+    const val AUDIO_MODE = "myo_audio_mode"
+    /** Réduire les animations de l’interface : "1" activé, absent désactivé. */
+    const val REDUCE_MOTION = "movix_tv_reduce_motion"
 }
 
 /** Couleurs d'accent proposées (crochets du focus, progression, boutons actifs). */
@@ -37,7 +41,7 @@ enum class AccentColor(val id: String, val argb: Long) {
     YELLOW("yellow", 0xFFEAB308);
 
     companion object {
-        fun of(id: String?): AccentColor = entries.firstOrNull { it.id == id } ?: RED
+        fun of(id: String?): AccentColor = entries.firstOrNull { it.id == id } ?: PURPLE
     }
 }
 
@@ -95,5 +99,5 @@ object UiPrefs {
         when (values[key]) { "1" -> true; "0" -> false; else -> default }
 
     /** Minutes avant l'écran de veille, 0 = coupé. */
-    fun screensaverMinutes(values: Map<String, String>): Int = values[UiKeys.SCREENSAVER_MIN]?.toIntOrNull()?.coerceIn(0, 60) ?: 5
+    fun screensaverMinutes(values: Map<String, String>): Int = values[UiKeys.SCREENSAVER_MIN]?.toIntOrNull()?.coerceIn(0, 60) ?: 10
 }

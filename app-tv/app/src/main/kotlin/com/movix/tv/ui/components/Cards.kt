@@ -29,6 +29,12 @@ import androidx.compose.ui.zIndex
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -91,30 +97,49 @@ fun PosterCard(
     onFocused: () -> Unit,
     modifier: Modifier = Modifier,
     rank: Int? = null,
+    contentDescription: String? = null,
+    title: String? = null,
+    width: Dp = 92.dp,
+    height: Dp = 138.dp,
 ) {
     val (source, focused) = rememberFocusable(onFocused)
     val progress = focusProgress(focused)
     val press = pressProgress(source)
-    // Au premier plan quand elle a le focus : sinon la carte suivante, dessinée
-    // après elle, recouvre son crochet de droite.
-    Row(modifier.zIndex(if (focused) 1f else 0f), verticalAlignment = Alignment.Bottom) {
-        if (rank != null) {
-            Text(
-                rank.toString(),
-                style = MovixType.Hero.copy(fontFamily = Bricolage, fontSize = 64.sp, color = MovixColors.Line),
-                modifier = Modifier.padding(end = 2.dp),
-            )
+    // La légende rend les affiches identifiables sans devoir déchiffrer le visuel.
+    // La colonne entière passe au premier plan pour ne jamais couper les crochets.
+    Column(modifier.zIndex(if (focused) 1f else 0f).then(if (rank == null) Modifier.width(width) else Modifier)) {
+        Row(verticalAlignment = Alignment.Bottom) {
+            if (rank != null) {
+                Text(
+                    rank.toString(),
+                    style = MovixType.Hero.copy(fontFamily = Bricolage, fontSize = 64.sp, color = MovixColors.Line),
+                    modifier = Modifier.padding(end = 2.dp),
+                )
+            }
+            Box(
+                Modifier
+                    .pressScale(press)
+                    .focusScale(progress)
+                    .focusBrackets { progress.value }
+                    .semantics(mergeDescendants = true) {
+                        role = Role.Button
+                        contentDescription?.let { this.contentDescription = it }
+                    }
+                    .clickable(interactionSource = source, indication = null, onClick = onClick)
+                    .size(width, height)
+                    .clip(RoundedCornerShape(7.dp)),
+            ) {
+                TmdbImage(imageUrl, width, height, Modifier.fillMaxSize())
+            }
         }
-        Box(
-            Modifier
-                .pressScale(press)
-                .focusScale(progress)
-                .focusBrackets { progress.value }
-                .clickable(interactionSource = source, indication = null, onClick = onClick)
-                .size(92.dp, 138.dp)
-                .clip(RoundedCornerShape(7.dp)),
-        ) {
-            TmdbImage(imageUrl, 92.dp, 138.dp, Modifier.fillMaxSize())
+        title?.takeIf { it.isNotBlank() }?.let {
+            Text(
+                it,
+                style = MovixType.CardTitle,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.padding(start = if (rank != null) 50.dp else 0.dp).width(width).padding(top = 8.dp).clearAndSetSemantics { },
+            )
         }
     }
 }
@@ -142,6 +167,10 @@ fun LandscapeCard(
                 .pressScale(press)
                 .focusScale(progress)
                 .focusBrackets { progress.value }
+                .semantics(mergeDescendants = true) {
+                    role = Role.Button
+                    contentDescription = listOf(title, subtitle).filter { it.isNotBlank() }.joinToString(", ")
+                }
                 .clickable(interactionSource = source, indication = null, onClick = onClick)
                 .size(width, height)
                 .clip(CardShape),
@@ -180,11 +209,13 @@ fun PillButton(
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
     selected: Boolean = false,
+    primary: Boolean = false,
 ) {
     val source = remember { MutableInteractionSource() }
     val focused by source.collectIsFocusedAsState()
     val bg = when {
         focused -> MovixColors.Text
+        primary -> MovixColors.Red
         selected -> MovixColors.Chip
         else -> MovixColors.Chip
     }
@@ -195,14 +226,15 @@ fun PillButton(
             .pressScale(press)
             .clip(RoundedCornerShape(999.dp))
             .background(bg)
+            .semantics(mergeDescendants = true) { role = Role.Button; contentDescription = text }
             .clickable(interactionSource = source, indication = null, onClick = onClick)
-            .height(36.dp)
-            .padding(horizontal = 16.dp),
+            .height(42.dp)
+            .padding(horizontal = 18.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         if (icon != null) {
-            Image(rememberVectorPainter(icon), null, Modifier.size(16.dp), colorFilter = ColorFilter.tint(fg))
+            Image(rememberVectorPainter(icon), null, Modifier.size(18.dp), colorFilter = ColorFilter.tint(fg))
         }
         Text(text, style = MovixType.Button.copy(color = fg), maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
@@ -232,8 +264,9 @@ fun TabPill(text: String, selected: Boolean, onClick: () -> Unit, onFocused: () 
             .pressScale(press)
             .clip(RoundedCornerShape(999.dp))
             .background(bg)
+            .semantics { role = Role.Button; contentDescription = text; this.selected = selected }
             .clickable(interactionSource = source, indication = null, onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 6.dp),
+            .padding(horizontal = 14.dp, vertical = 8.dp),
     )
 }
 

@@ -1,0 +1,101 @@
+name: Android TV
+# Rebuild Myo after the Android TV app-name change.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - "app-tv/**"
+      - ".github/workflows/android-tv.yml"
+  push:
+    branches:
+      - main
+      - feature/android-tv-premium
+    paths:
+      - "app-tv/**"
+      - ".github/workflows/android-tv.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-tv-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Unit tests and debug APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          # The legacy "tools" package was removed from Google's SDK repository.
+          packages: 'platform-tools'
+
+      - name: Install Android platform and native toolchains
+        run: |
+          yes | sdkmanager --licenses >/dev/null
+          sdkmanager "platforms;android-37.0" "build-tools;37.0.0" "ndk;26.1.10909125" "cmake;3.22.1"
+          # Android SDK publishes API 37 under android-37.0 while compileSdk=37
+          # asks Gradle for android-37. Keep both names available to AGP.
+          if [ -d "$ANDROID_HOME/platforms/android-37.0" ] && [ ! -e "$ANDROID_HOME/platforms/android-37" ]; then
+            ln -s android-37.0 "$ANDROID_HOME/platforms/android-37"
+          fi
+
+      - name: Run unit tests and build debug APKs
+        working-directory: app-tv
+        run: |
+          chmod +x ./gradlew
+          ./gradlew --no-daemon :app:testDebugUnitTest :app:assembleDebug
+
+      - name: Verify both Android TV architectures and approved intro audio
+        if: success()
+        run: |
+          python3 - <<'PY'
+          import glob, hashlib, zipfile
+          expected = "2f7344884618244b5b5ac185d0bf5887115638620a3d9433fe699821e7e03c39"
+          for abi in ("armeabi-v7a", "arm64-v8a"):
+              files = glob.glob(f"app-tv/app/build/outputs/apk/debug/*{abi}-debug.apk")
+              assert len(files) == 1, f"{abi}: expected exactly one APK, got {files}"
+              with zipfile.ZipFile(files[0]) as archive:
+                  libs = [name for name in archive.namelist() if name.startswith("lib/") and name.endswith(".so")]
+                  architectures = {name.split("/")[1] for name in libs}
+                  assert architectures == {abi}, f"{abi}: unexpected libraries: {architectures}"
+                  audio_paths = [name for name in archive.namelist() if name.endswith("myo_intro_voice6.mp3")]
+                  assert len(audio_paths) == 1, f"{abi}: missing/duplicate intro soundtrack: {audio_paths}"
+                  actual = hashlib.sha256(archive.read(audio_paths[0])).hexdigest()
+                  assert actual == expected, f"{abi}: wrong intro voice6 sha256: {actual}"
+                  assert any(name.endswith("libffmpegJNI.so") for name in libs), f"{abi}: missing FFmpeg decoder"
+                  assert any(name.endswith("libmovixcurl.so") for name in libs), f"{abi}: missing curl native bridge"
+                  print(f"PASS {abi}: {files[0]}, fixed voice6 and native decoders verified")
+          PY
+
+      - name: Upload ARMv7 debug APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: myo-tv-armv7-apk
+          path: app-tv/app/build/outputs/apk/debug/*armeabi-v7a-debug.apk
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload ARM64 debug APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: myo-tv-arm64-apk
+          path: app-tv/app/build/outputs/apk/debug/*arm64-v8a-debug.apk
+          if-no-files-found: error
+          retention-days: 7

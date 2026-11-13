@@ -51,6 +51,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -72,6 +75,7 @@ import com.movix.tv.ui.components.PosterCard
 import com.movix.tv.ui.components.TmdbImage
 import com.movix.tv.ui.nav.Section
 import com.movix.tv.ui.theme.MovixColors
+import com.movix.tv.ui.theme.LocalReduceMotion
 import com.movix.tv.ui.theme.MovixType
 import com.movix.tv.ui.update.UpdateBanner
 import kotlinx.coroutines.delay
@@ -134,6 +138,8 @@ fun BrowseScreen(
     // vite ne doit pas lancer le chargement d'une image de fond par carte.
     var focusedHero by remember { mutableStateOf<HeroInfo?>(null) }
     var hero by remember { mutableStateOf<HeroInfo?>(null) }
+    var heroAction by remember { mutableStateOf<(() -> Unit)?>(null) }
+    var heroActionLabel by remember { mutableStateOf(R.string.action_details) }
     LaunchedEffect(focusedHero) {
         if (hero == null) hero = focusedHero else { delay(HERO_DEBOUNCE_MS); hero = focusedHero }
         // Arrêté sur un titre : sa fiche se charge en avance.
@@ -195,7 +201,7 @@ fun BrowseScreen(
                 onAction = vm::load,
             )
             else -> {
-                Hero(hero, trailer)
+                Hero(hero, trailer, heroActionLabel, heroAction)
                 val density = LocalDensity.current
                 // La carte sélectionnée se cale sous le titre de sa rangée (≈ 36 dp), jamais dessus.
                 val columnSpec = remember(density) { PivotBringIntoViewSpec(with(density) { 36.dp.toPx() }) }
@@ -214,7 +220,12 @@ fun BrowseScreen(
                                         firstRequester = if (!focusedOnce) firstCard else null,
                                         restoreKey = lastKey,
                                         restoreRequester = restore,
-                                        onFocus = { key, h -> focusedHero = h; lastKey = key },
+                                        onFocus = { key, h, action ->
+                                            focusedHero = h
+                                            lastKey = key
+                                            heroAction = action
+                                            heroActionLabel = R.string.action_resume
+                                        },
                                         // « Reprendre » relance directement la lecture.
                                         onOpen = onResume,
                                     )
@@ -230,7 +241,12 @@ fun BrowseScreen(
                                     firstRequester = if (index == 0 && continueRow.isEmpty() && !focusedOnce) firstCard else null,
                                     restoreKey = lastKey?.removePrefix("${row.spec.id}|")?.takeIf { lastKey?.startsWith("${row.spec.id}|") == true },
                                     restoreRequester = restore,
-                                    onFocus = { focusedHero = it.hero(); lastKey = "${row.spec.id}|${it.key}" },
+                                    onFocus = {
+                                        focusedHero = it.hero()
+                                        lastKey = "${row.spec.id}|${it.key}"
+                                        heroAction = { onOpen(it) }
+                                        heroActionLabel = R.string.action_details
+                                    },
                                     onOpen = onOpen,
                                 )
                             }
@@ -255,14 +271,15 @@ fun BrowseScreen(
 }
 
 @Composable
-private fun Hero(info: HeroInfo?, trailer: BannerTrailer) {
+private fun Hero(info: HeroInfo?, trailer: BannerTrailer, actionLabel: Int, onAction: (() -> Unit)?) {
     // Mode léger : changement sec, jamais deux fonds plein écran en mémoire à la fois.
     val lowRam = com.movix.tv.ui.theme.LocalLowRam.current
-    Crossfade(targetState = info, animationSpec = tween(if (lowRam) 0 else 220), label = "hero") { h ->
+    val reduceMotion = LocalReduceMotion.current
+    Crossfade(targetState = info, animationSpec = tween(if (lowRam || reduceMotion) 0 else 220), label = "hero") { h ->
         if (h == null) return@Crossfade
         val imageAlpha by animateFloatAsState(
             targetValue = if (trailer.shownFor == h.trailerKey) 0f else 1f,
-            animationSpec = tween(BANNER_FADE_MS),
+            animationSpec = tween(if (reduceMotion) 0 else BANNER_FADE_MS),
             label = "heroVideo",
         )
         Box(Modifier.fillMaxWidth().height(HeroHeight)) {
@@ -292,13 +309,27 @@ private fun Hero(info: HeroInfo?, trailer: BannerTrailer) {
                     Brush.verticalGradient(0.55f to MovixColors.Ink.copy(alpha = 0f), 1f to MovixColors.Ink),
                 ),
             )
-            Column(Modifier.padding(start = ContentStart, top = 56.dp).width(560.dp)) {
+            Column(
+                Modifier
+                    .padding(start = ContentStart, top = 36.dp)
+                    .width(560.dp)
+                    .semantics(mergeDescendants = true) {
+                        contentDescription = buildString {
+                            append(h.title)
+                            append(", ")
+                            append(if (h.type == MediaType.TV) "série" else "film")
+                            h.rating?.let { append(", note ").append(String.format(Locale.FRANCE, "%.1f", it)).append(" sur 10") }
+                            h.year?.let { append(", ").append(it) }
+                            h.overview.takeIf { it.isNotBlank() }?.let { append(". ").append(it) }
+                        }
+                    },
+            ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Badge(stringResource(if (h.type == MediaType.TV) R.string.badge_tv else R.string.badge_movie))
                     if (h.kicker != null) Text(h.kicker, style = MovixType.Kicker)
                 }
                 Spacer(Modifier.height(12.dp))
-                Text(h.title, style = MovixType.Hero, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(h.title, style = MovixType.Hero, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.semantics { heading() })
                 Spacer(Modifier.height(10.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                     h.rating?.let { Text("★ " + String.format(Locale.FRANCE, "%.1f", it), style = MovixType.MetaStrong) }
@@ -306,6 +337,10 @@ private fun Hero(info: HeroInfo?, trailer: BannerTrailer) {
                 }
                 Spacer(Modifier.height(10.dp))
                 Text(h.overview, style = MovixType.Body, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.width(380.dp))
+                if (onAction != null) {
+                    Spacer(Modifier.height(8.dp))
+                    PillButton(stringResource(actionLabel), onAction, primary = true)
+                }
             }
         }
     }
@@ -324,7 +359,7 @@ private fun MediaRow(
     onOpen: (MediaItem) -> Unit,
 ) {
     Column {
-        Text(title, style = MovixType.Row, modifier = Modifier.padding(start = ContentStart, bottom = 10.dp))
+        Text(title, style = MovixType.Row, modifier = Modifier.padding(start = ContentStart, bottom = 10.dp).semantics { heading() })
         LazyRow(
             Modifier.fillMaxWidth().padding(start = RailWidth).focusRestorer(),
             contentPadding = PaddingValues(start = RowInset, end = 48.dp, top = 8.dp, bottom = 8.dp),
@@ -338,6 +373,10 @@ private fun MediaRow(
                     onClick = { onOpen(item) },
                     onFocused = { onFocus(item) },
                     rank = if (layout == RowLayout.RANK) index + 1 else null,
+                    contentDescription = item.title,
+                    title = item.title,
+                    width = 104.dp,
+                    height = 156.dp,
                     modifier = Modifier
                         .then(if (index == 0 && firstRequester != null) Modifier.focusRequester(firstRequester) else Modifier)
                         .then(if (item.key == restoreKey) Modifier.focusRequester(restoreRequester) else Modifier),
@@ -354,12 +393,12 @@ private fun ContinueRow(
     firstRequester: FocusRequester?,
     restoreKey: String?,
     restoreRequester: FocusRequester,
-    onFocus: (String, HeroInfo) -> Unit,
+    onFocus: (String, HeroInfo, () -> Unit) -> Unit,
     onOpen: (ContinueEntry) -> Unit,
 ) {
     val context = LocalContext.current
     Column {
-        Text(stringResource(R.string.row_continue), style = MovixType.Row, modifier = Modifier.padding(start = ContentStart, bottom = 10.dp))
+        Text(stringResource(R.string.row_continue), style = MovixType.Row, modifier = Modifier.padding(start = ContentStart, bottom = 10.dp).semantics { heading() })
         LazyRow(
             Modifier.fillMaxWidth().padding(start = RailWidth).focusRestorer(),
             contentPadding = PaddingValues(start = RowInset + 12.dp, end = 48.dp, top = 10.dp, bottom = 8.dp),
@@ -384,7 +423,7 @@ private fun ContinueRow(
                     subtitle = sub,
                     ratio = e.ratio,
                     onClick = { onOpen(e) },
-                    onFocused = { onFocus("continue|${e.key}", continueHero(e, context)) },
+                    onFocused = { onFocus("continue|${e.key}", continueHero(e, context)) { onOpen(e) } },
                     modifier = Modifier
                         .then(if (e == entries.first() && firstRequester != null) Modifier.focusRequester(firstRequester) else Modifier)
                         .then(if ("continue|${e.key}" == restoreKey) Modifier.focusRequester(restoreRequester) else Modifier),

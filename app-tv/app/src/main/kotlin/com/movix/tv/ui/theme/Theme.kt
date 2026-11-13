@@ -31,7 +31,7 @@ object MovixColors {
      * Couleur d'accent choisie dans les réglages (rouge Movix par défaut).
      * État Compose : tout ce qui lit [Red] se redessine quand elle change.
      */
-    private val accent = androidx.compose.runtime.mutableStateOf(Color(0xFFDC2626))
+    private val accent = androidx.compose.runtime.mutableStateOf(Color(0xFF9333EA))
     val Red: Color get() = accent.value
     fun setAccent(color: Color) { if (accent.value != color) accent.value = color }
 
@@ -92,8 +92,8 @@ object MovixType {
     val MetaStrong = Meta.copy(fontWeight = FontWeight.SemiBold, color = MovixColors.Text)
     val Kicker = TextStyle(fontFamily = Instrument, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = MovixColors.Muted)
     val Button = TextStyle(fontFamily = Instrument, fontWeight = FontWeight.SemiBold, fontSize = 13.5.sp, color = MovixColors.Text)
-    val CardTitle = TextStyle(fontFamily = Instrument, fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = MovixColors.Text)
-    val CardSub = TextStyle(fontFamily = Instrument, fontSize = 11.sp, lineHeight = 15.sp, color = MovixColors.Muted)
+    val CardTitle = TextStyle(fontFamily = Instrument, fontWeight = FontWeight.SemiBold, fontSize = 13.sp, color = MovixColors.Text)
+    val CardSub = TextStyle(fontFamily = Instrument, fontSize = 12.sp, lineHeight = 16.sp, color = MovixColors.Muted)
     val Badge = TextStyle(fontFamily = Instrument, fontWeight = FontWeight.Bold, fontSize = 11.sp, color = MovixColors.Text)
 }
 
@@ -103,8 +103,18 @@ object MovixType {
  */
 val LocalLowRam = staticCompositionLocalOf { false }
 
+/** Préférence d'accessibilité : transitions instantanées et focus sans ressort. */
+val LocalReduceMotion = staticCompositionLocalOf { false }
+
 @Composable
-fun MovixTheme(lowRam: Boolean = false, content: @Composable () -> Unit) = CompositionLocalProvider(LocalLowRam provides lowRam) {
+fun MovixTheme(
+    lowRam: Boolean = false,
+    reduceMotion: Boolean = false,
+    content: @Composable () -> Unit,
+) = CompositionLocalProvider(
+    LocalLowRam provides lowRam,
+    LocalReduceMotion provides reduceMotion,
+) {
     MaterialTheme(
         colorScheme = darkColorScheme(
             background = MovixColors.Ink,

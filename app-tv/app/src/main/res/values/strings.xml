@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Movix</string>
+    <string name="app_name">Myo</string>
 
     <string name="nav_search">Recherche</string>
     <string name="nav_home">Accueil</string>
     <string name="nav_movies">Films</string>
     <string name="nav_series">Séries</string>
     <string name="nav_anime">Animés</string>
+    <string name="nav_iptv">TV en direct</string>
+    <string name="nav_classics">Classiques</string>
     <string name="nav_watchlist">Ma liste</string>
     <string name="nav_settings">Réglages</string>
 
@@ -22,6 +24,7 @@
     <string name="resume_episode">Reprendre S%1$d É%2$d</string>
     <string name="resume_kicker">Reprendre saison %1$d, épisode %2$d</string>
     <string name="action_play">Lecture</string>
+    <string name="action_details">Découvrir la fiche</string>
     <string name="action_resume">Reprendre</string>
     <string name="action_watchlist_add">Ma liste</string>
     <string name="action_watchlist_remove">Retirer de ma liste</string>
@@ -49,6 +52,12 @@
     <string name="error_body">Vérifie la connexion de la télé, puis réessaie.</string>
     <string name="empty_watchlist">Ta liste est vide. Ajoute un film ou une série depuis sa fiche.</string>
 
+    <string name="classics_title">Classiques &amp; domaine public</string>
+    <string name="classics_description">Films signalés comme appartenant au domaine public sur Internet Archive. La disponibilité et la compatibilité des fichiers peuvent varier.</string>
+    <string name="classics_loading">Recherche des films autorisés…</string>
+    <string name="classics_error">Le catalogue Internet Archive est momentanément indisponible. Réessaie plus tard.</string>
+    <string name="classics_empty">Aucun fichier vidéo MP4 vérifié n’est disponible dans cette sélection pour le moment.</string>
+
     <string name="search_hint">Tape un titre</string>
     <string name="search_empty">Aucun résultat pour « %s ».</string>
     <string name="search_space">Espace</string>
@@ -68,6 +77,10 @@
     <string name="settings_tmdb_ok">Clé acceptée.</string>
     <string name="settings_tmdb_bad">TMDB refuse cette clé. Vérifie-la puis réessaie.</string>
     <string name="settings_tmdb_network">TMDB ne répond pas. Vérifie la connexion.</string>
+    <string name="settings_accessibility_title">Accessibilité</string>
+    <string name="settings_accessibility_body">Adapte les effets visuels pour une navigation plus confortable à la télécommande.</string>
+    <string name="accessibility_reduce_motion">Réduire les animations</string>
+    <string name="accessibility_reduce_motion_body">Désactive les transitions et le mouvement de ressort du focus. Le changement s’applique immédiatement.</string>
     <string name="settings_about">À propos</string>
     <string name="settings_version">Version %s</string>
 
@@ -103,6 +116,9 @@
     <string name="player_extracting_short">extraction…</string>
     <string name="player_extract_failed">Ce lecteur n\'a pas pu être extrait. Choisis-en un autre.</string>
     <string name="player_loading">Recherche des sources…</string>
+    <string name="myo_preparation_ready">Vidéo prête · Choisissez votre source ou démarrez la lecture</string>
+    <string name="myo_launch_playback">Lancer la lecture</string>
+    <string name="myo_preparation_technical">Source sélectionnée : %1$s</string>
     <string name="player_no_source">Aucune source lisible pour ce titre.</string>
     <string name="player_source_failed">Cette source ne marche pas, essai de la suivante…</string>
     <string name="player_next_episode">Épisode suivant</string>
@@ -118,6 +134,7 @@
     <string name="player_source">Source</string>
     <string name="player_quality">Qualité</string>
     <string name="player_audio">Audio</string>
+    <string name="myo_audio_title">Son intelligent</string>
     <string name="player_subtitles">Sous-titres</string>
     <string name="player_offset">Décalage</string>
     <string name="player_speed">Vitesse</string>

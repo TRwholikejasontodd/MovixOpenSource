@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import com.movix.tv.ui.theme.MovixColors
+import com.movix.tv.ui.theme.LocalReduceMotion
 
 /**
  * Le focus d'une carte : les deux crochets rouges du logo [M], perforations
@@ -105,11 +106,14 @@ private fun Density.bracketPath(outerX: Float, inward: Float, top: Float, h: Flo
  * Gardé en mode léger : seuls les crochets sont redessinés, sans mise en page.
  */
 @Composable
-fun focusProgress(focused: Boolean): State<Float> = animateFloatAsState(
-    if (focused) 1f else 0f,
-    if (focused) spring(dampingRatio = 0.5f, stiffness = 700f) else tween(100),
-    label = "focus",
-)
+fun focusProgress(focused: Boolean): State<Float> {
+    val reduceMotion = LocalReduceMotion.current
+    return animateFloatAsState(
+        if (focused) 1f else 0f,
+        if (reduceMotion) tween(0) else if (focused) spring(dampingRatio = 0.5f, stiffness = 700f) else tween(100),
+        label = "focus",
+    )
+}
 
 fun Modifier.focusScale(progress: State<Float>, max: Float = 1.06f): Modifier = graphicsLayer {
     // Le zoom ne suit pas le dépassement du ressort : seuls les crochets serrent.

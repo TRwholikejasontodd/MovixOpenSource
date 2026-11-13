@@ -214,7 +214,7 @@ fun PlayerScreen(target: PlayTarget, onExit: () -> Unit, onOpenSettings: () -> U
         VideoSurface(c)
 
         when (c.phase) {
-            PlayerPhase.LOADING -> Waiting(target, stringResource(c.loadingText))
+            PlayerPhase.LOADING -> Waiting(c.target, stringResource(c.loadingText), onSettings = { panel = PanelPage.MAIN }, onBack = onExit)
             // Rien de lisible nativement mais des lecteurs embed : on propose le lecteur web.
             PlayerPhase.NEED_VIP, PlayerPhase.NO_SOURCE -> c.webSources.firstOrNull()?.let { web ->
                 Waiting(target, stringResource(R.string.player_web_offer), action = stringResource(R.string.player_web_open), onAction = { c.openWeb(web) })
@@ -223,10 +223,28 @@ fun PlayerScreen(target: PlayTarget, onExit: () -> Unit, onOpenSettings: () -> U
             } else {
                 Waiting(target, stringResource(R.string.player_no_source), action = stringResource(R.string.player_back), onAction = onExit)
             }
-            PlayerPhase.PLAYING -> Unit
+            PlayerPhase.PLAYING -> when {
+                c.readyToLaunch -> Waiting(
+                    c.target,
+                    stringResource(R.string.myo_preparation_ready),
+                    action = stringResource(R.string.myo_launch_playback),
+                    onAction = c::launchPlayback,
+                    sourceLabel = c.current?.label,
+                    onSettings = { panel = PanelPage.MAIN },
+                    onBack = onExit,
+                )
+                c.preparingFirstPlayback -> Waiting(
+                    c.target,
+                    stringResource(c.loadingText),
+                    sourceLabel = c.current?.label,
+                    onSettings = { panel = PanelPage.MAIN },
+                    onBack = onExit,
+                )
+                else -> Unit
+            }
         }
 
-        if (c.phase == PlayerPhase.PLAYING && c.buffering) {
+        if (c.phase == PlayerPhase.PLAYING && !c.preparingFirstPlayback && !c.readyToLaunch && c.buffering) {
             Spinner(Modifier.align(Alignment.Center))
         }
 
@@ -243,7 +261,9 @@ fun PlayerScreen(target: PlayTarget, onExit: () -> Unit, onOpenSettings: () -> U
             }
         }
 
-        AnimatedVisibility(controls && !overlay && c.phase == PlayerPhase.PLAYING && c.formatIssue == null, enter = fadeIn(tween(160)), exit = fadeOut(tween(200))) {
+        AnimatedVisibility(controls && !overlay && c.phase == PlayerPhase.PLAYING &&
+            !c.preparingFirstPlayback && !c.readyToLaunch && c.formatIssue == null,
+            enter = fadeIn(tween(160)), exit = fadeOut(tween(200))) {
             Controls(
                 c, playRequester,
                 onSettings = { panel = PanelPage.MAIN },
@@ -366,22 +386,48 @@ private fun VideoSurface(c: PlayerController) {
 }
 
 @Composable
-private fun Waiting(target: PlayTarget, message: String, action: String? = null, onAction: () -> Unit = {}) {
+private fun Waiting(
+    target: PlayTarget,
+    message: String,
+    action: String? = null,
+    onAction: () -> Unit = {},
+    sourceLabel: String? = null,
+    onSettings: (() -> Unit)? = null,
+    onBack: (() -> Unit)? = null,
+) {
     val requester = remember { FocusRequester() }
     Box(Modifier.fillMaxSize()) {
         TmdbImage(TmdbImage.backdrop(target.backdropPath), 960.dp, 540.dp, Modifier.fillMaxSize())
-        Box(Modifier.fillMaxSize().background(MovixColors.Ink.copy(alpha = 0.78f)))
-        Column(Modifier.align(Alignment.CenterStart).padding(start = 84.dp).width(460.dp)) {
+        Box(Modifier.fillMaxSize().background(MovixColors.Ink.copy(alpha = 0.76f)))
+        Column(Modifier.align(Alignment.CenterStart).padding(start = 84.dp).width(600.dp)) {
             Text(target.title, style = MovixType.Title, maxLines = 2)
-            Spacer(Modifier.height(14.dp))
+            target.synopsis?.takeIf { it.isNotBlank() }?.let { description ->
+                Spacer(Modifier.height(12.dp))
+                Text(description, style = MovixType.Body, maxLines = 3, overflow = TextOverflow.Ellipsis)
+            }
+            Spacer(Modifier.height(18.dp))
             Text(message, style = MovixType.Body)
+            sourceLabel?.let { name ->
+                Spacer(Modifier.height(7.dp))
+                Text(stringResource(R.string.myo_preparation_technical, name), style = MovixType.Meta)
+            }
             if (action != null) {
-                Spacer(Modifier.height(18.dp))
+                Spacer(Modifier.height(22.dp))
                 PillButton(action, onAction, Modifier.focusRequester(requester))
-                LaunchedEffect(Unit) { delay(32); runCatching { requester.requestFocus() } }
-            } else {
-                Spacer(Modifier.height(18.dp))
-                Spinner()
+                LaunchedEffect(action) { delay(32); runCatching { requester.requestFocus() } }
+            }
+        }
+        if (action == null) Spinner(Modifier.align(Alignment.TopEnd).padding(top = 32.dp, end = 44.dp).size(24.dp))
+        if (onSettings != null || onBack != null) {
+            Row(
+                Modifier.align(Alignment.BottomStart).padding(start = 48.dp, bottom = 36.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                if (onBack != null) PillButton(stringResource(R.string.player_back), onBack)
+                if (onSettings != null) PillButton(
+                    stringResource(R.string.player_settings), onSettings,
+                    icon = MovixIcons.Gear,
+                )
             }
         }
     }

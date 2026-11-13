@@ -4,6 +4,9 @@
 
 RCT_EXTERN_METHOD(setLocalPlaybackAwake:(BOOL)active)
 
+RCT_EXTERN_METHOD(playMyoIntro)
+RCT_EXTERN_METHOD(stopMyoIntro)
+
 RCT_EXTERN_METHOD(setPlaybackAwakeOwner:(NSString *)owner
                   active:(BOOL)active)
 
