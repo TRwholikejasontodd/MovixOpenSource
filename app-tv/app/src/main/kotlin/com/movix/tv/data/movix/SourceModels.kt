@@ -8,6 +8,7 @@ import androidx.compose.runtime.Immutable
  * ne compte pas.
  */
 enum class Provider(val label: String) {
+    AUTHORIZED("MYO — source autorisée"),
     LINKS("Movix"),
     /** `api/tmdb` : « Lecteurs Multi » sur le site, jamais le nom de la source. */
     COFLIX("Multi"),
