@@ -16,6 +16,27 @@ import kotlinx.serialization.json.JsonElement
  * par la route signée des télés reliées.
  */
 class SourceRepository(private val api: MovixApi, private val json: Json) {
+    // Revenir à une fiche juste quittée ne devrait pas relancer 10 services.
+    // Les URL signées peuvent expirer : cache mémoire de seulement 25 secondes,
+    // et jamais de réponse vide ; au plus six titres dans le processus TV.
+    private data class Cached(val storedAtMs: Long, val sources: List<PlaybackSource>)
+    private val recent = LinkedHashMap<String, Cached>(8, 0.75f, true)
+    private val recentLock = Any()
+
+    private fun cacheKey(req: PlayRequest, vipKey: String?): String =
+        "${req.tmdbId}|${req.isTv}|${req.season}|${req.episode}|${req.imdbId}|${vipKey.orEmpty()}"
+
+    private fun cached(key: String): List<PlaybackSource>? = synchronized(recentLock) {
+        recent[key]?.takeIf { System.currentTimeMillis() - it.storedAtMs < CACHE_MS }?.sources
+    }
+
+    private fun remember(key: String, sources: List<PlaybackSource>) {
+        if (sources.none { it.playable }) return
+        synchronized(recentLock) {
+            recent[key] = Cached(System.currentTimeMillis(), sources)
+            while (recent.size > MAX_CACHED_TITLES) recent.remove(recent.keys.first())
+        }
+    }
 
     /** Une route : chemin, paramètres, `resolve` demandé, parseur. */
     internal class Route(
@@ -74,7 +95,9 @@ class SourceRepository(private val api: MovixApi, private val json: Json) {
         perRouteMs: Long = 15_000,
         swiftflux: (suspend (index: Int) -> Pair<String, String?>?)? = null,
     ): List<PlaybackSource> = coroutineScope {
-        routes(req).map { route ->
+        val key = cacheKey(req, vipKey)
+        cached(key)?.let { return@coroutineScope it }
+        val resolved = routes(req).map { route ->
             async {
                 val started = System.currentTimeMillis()
                 val fetched = withTimeoutOrNull(perRouteMs) { fetch(route, vipKey) } ?: emptyList()
@@ -90,6 +113,8 @@ class SourceRepository(private val api: MovixApi, private val json: Json) {
             // sans en-tête (vérifié le 2026-10-16 : playlist et segments PNG en 200).
             vipKey != null || s.provider != Provider.PURSTREAM
         }
+        remember(key, resolved)
+        resolved
     }
 
     /**
@@ -123,6 +148,8 @@ class SourceRepository(private val api: MovixApi, private val json: Json) {
     }
 
     companion object {
+        private const val CACHE_MS = 25_000L
+        private const val MAX_CACHED_TITLES = 6
         /** Le CDN de SwiftFlux est censé n'accepter que les domaines Movix. */
         const val SITE_REFERER = "https://movix.luxe/"
     }
