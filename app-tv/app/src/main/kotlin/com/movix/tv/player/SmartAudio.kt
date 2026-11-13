@@ -1,6 +1,5 @@
 package com.movix.tv.player
 
-import android.media.audiofx.AudioEffect
 import android.media.audiofx.DynamicsProcessing
 import android.os.Build
 import android.util.Log
@@ -74,7 +73,7 @@ class SmartAudio {
                     AudioMode.OFF -> listOf(1f, 0f, 30f, 150f, 0f)
                 }
                 for (channel in 0 until cfg.channelCount) {
-                    if (mbc && cfg.getMbcByChannelIndex(channel).bandCount > 0) {
+                    if (mbc && processor.getMbcByChannelIndex(channel).bandCount > 0) {
                         val band = processor.getMbcBandByChannelIndex(channel, 0)
                         band.isEnabled = true
                         band.ratio = ratio
