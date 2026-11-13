@@ -181,7 +181,10 @@ object SourceSelector {
                     else -> 2
                 }
             },
-            { height(it)?.takeIf { h -> h < HD_HEIGHT }?.let { h -> -h } ?: 0 },
+            // À langue et compatibilité égales, choisir la meilleure résolution réelle.
+            // Avant : toutes les sources >= 720p étaient ex æquo et le fournisseur
+            // pouvait faire passer une 720p devant une 1080p/4K.
+            { -(height(it) ?: 0) },
         ))
     }
 }
