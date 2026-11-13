@@ -328,6 +328,8 @@ class PlayerController(
             when (frameHealth.observe(droppedFrames, elapsedMs)) {
                 VideoFrameHealth.Action.NONE -> Unit
                 VideoFrameHealth.Action.LIMIT_1080P -> {
+                    // La priorité est au décodage, pas aux extractions en fond.
+                    extractAllJob?.cancel()
                     Log.w("MovixPerf", "nombreuses images perdues : limitation à 1080p")
                     player.trackSelectionParameters = player.trackSelectionParameters.buildUpon()
                         .setMaxVideoSize(1920, 1080).setMaxVideoFrameRate(30).build()
@@ -466,8 +468,16 @@ class PlayerController(
         extractAllJob?.cancel()
         val todo = SourceSelector.deviceCandidates(deviceSources).filter { s -> sources.none { it.id == s.id } }
         if (todo.isEmpty()) return
+        // Sur appareils modestes, QuickJS et les requêtes réseau de fond
+        // concurrencent le décodage et peuvent entraîner un arrêt mémoire.
+        // Les liens restent extractibles à la demande et lors d'un repli.
+        if (container.playerEngine.lowRam) return
         extractAllJob = scope.launch {
-            val permits = kotlinx.coroutines.sync.Semaphore(2)
+            // Ne pas lancer de scripts pendant la préparation et les premières
+            // secondes du film : laisser le décodeur et les buffers se stabiliser.
+            delay(20_000)
+            if (phase != PlayerPhase.PLAYING || !player.isPlaying) return@launch
+            val permits = kotlinx.coroutines.sync.Semaphore(1)
             todo.map { s ->
                 launch {
                     permits.acquire()
