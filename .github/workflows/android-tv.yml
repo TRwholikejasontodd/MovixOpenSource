@@ -64,7 +64,7 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: myo-tv-arm64-apk
+          name: myo-tv-armv7-apk
           path: app-tv/app/build/outputs/apk/debug/*armeabi-v7a-debug.apk
           if-no-files-found: error
           retention-days: 7
