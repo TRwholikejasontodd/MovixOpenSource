@@ -139,6 +139,19 @@ class SourceSelectorTest {
     }
 
     @Test
+    fun fallbackPrefersDifferentHostWithoutChangingAudioLanguage() {
+        val broken = hls(Provider.FSTREAM, "voe")
+        val sameBrokenHost = hls(Provider.WIFLIX, "voe")
+        val otherHost = hls(Provider.J1F, "vidzy")
+        val otherLanguage = hls(Provider.FSTREAM, "uqload", Lang.VOSTFR)
+        val ordered = listOf(broken, sameBrokenHost, otherHost, otherLanguage)
+        assertEquals(otherHost, SourceSelector.afterFailure(ordered, setOf(broken.id), broken))
+        assertEquals(sameBrokenHost, SourceSelector.afterFailure(ordered, setOf(broken.id, otherHost.id), broken))
+        assertEquals(otherLanguage, SourceSelector.afterFailure(ordered, setOf(broken.id, sameBrokenHost.id, otherHost.id), broken))
+        assertNull(SourceSelector.afterFailure(ordered, ordered.map { it.id }.toSet(), broken))
+    }
+
+    @Test
     fun probeCandidatesAreOfThePickedLanguage() {
         val vf = hls(Provider.FSTREAM, "vidzy")
         val vostfr = hls(Provider.WIFLIX, "voe", Lang.VOSTFR)
