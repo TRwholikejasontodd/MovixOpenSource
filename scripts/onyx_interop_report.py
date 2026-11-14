@@ -26,11 +26,11 @@ print("does **not** confer permission to reuse proprietary provider implementati
 print()
 print("## Binary identity and multimedia components")
 print()
-print(f"- SHA-256: \`{sha}\`")
+print(f"- SHA-256: `{sha}`")
 print(f"- Size: {apk.stat().st_size:,} bytes")
 with zipfile.ZipFile(apk) as z:
     names = z.namelist()
-    dex = [n for n in names if re.fullmatch(r"classes\\d*\\.dex", n)]
+    dex = [n for n in names if re.fullmatch(r"classes\d*\.dex", n)]
     libs = [n for n in names if n.startswith("lib/") and n.endswith(".so")]
     print(f"- DEX: {len(dex)}; native libraries: {len(libs)}")
     print(f"- ABIs: {', '.join(sorted(set(x.split('/')[1] for x in libs))) or 'none'}")
@@ -51,28 +51,28 @@ print(f"- API/model classes by known names: {len(models)}")
 print()
 print("### Provider identifiers (class names only, capped)")
 for p in sorted(providers, key=lambda x:x.stem.lower())[:115]:
-    print(f"- \`{p.stem}\`")
+    print(f"- `{p.stem}`")
 print()
 print("### Extractor identifiers (class names only, capped)")
 for p in sorted(extractors, key=lambda x:x.stem.lower())[:110]:
-    print(f"- \`{p.stem}\`")
+    print(f"- `{p.stem}`")
 print()
 
 sig_re = re.compile(
-    r"(?m)^\\s*(?:@Override\\s*)?(?:(?:public|protected|private|static|final|synchronized|abstract)\\s+){0,6}"
-    r"(?:[\\w<>\\[\\].?, ]{1,130}\\s+)?"
-    r"([A-Za-z_$][\\w$]*)\\s*\\(([^(){}]{0,170})\\)\\s*(?:throws\\s+[\\w., ]+)?\\s*\\{"
+    r"(?m)^\s*(?:@Override\s*)?(?:(?:public|protected|private|static|final|synchronized|abstract)\s+){0,6}"
+    r"(?:[\w<>\[\].?, ]{1,130}\s+)?"
+    r"([A-Za-z_$][\w$]*)\s*\(([^(){}]{0,170})\)\s*(?:throws\s+[\w., ]+)?\s*\{"
 )
-class_re = re.compile(r"(?m)\\b(?:class|interface)\\s+(\\w+)\\b([^\\{\\n]{0,180})")
+class_re = re.compile(r"(?m)\b(?:class|interface)\s+(\w+)\b([^\{\n]{0,180})")
 interesting = re.compile(r"load|search|link|extract|source|episode|season|subtit|server|quality|play|mainpage|home|video|request|error|update|provider|init", re.I)
 
 def summarize(p: Path) -> None:
     src = p.read_text("utf-8", errors="replace")
     declaration = next((m.group(0) for m in class_re.finditer(src) if m.group(1) == p.stem), "")
-    superclasses = re.sub(r"\\s+", " ", declaration.replace("{", "")).strip()[:200]
-    print(f"#### \`{p.stem}\`")
-    print(f"- Declaration: \`{superclasses}\`" if superclasses else "- Declaration not parsed")
-    imports = re.findall(r"(?m)^import\\s+(?:static\\s+)?([\\w.]+)\\s*;", src)
+    superclasses = re.sub(r"\s+", " ", declaration.replace("{", "")).strip()[:200]
+    print(f"#### `{p.stem}`")
+    print(f"- Declaration: `{superclasses}`" if superclasses else "- Declaration not parsed")
+    imports = re.findall(r"(?m)^import\s+(?:static\s+)?([\w.]+)\s*;", src)
     # Package-level dependency hints, no embedded endpoints or source bodies.
     hints = sorted(set(x.split(".")[0] for x in imports if x.startswith(("okhttp", "retrofit", "org.jsoup", "androidx.media3", "kotlinx", "com.streamflix"))))
     print(f"- Import family hints: {', '.join(hints) if hints else 'not determined'}")
