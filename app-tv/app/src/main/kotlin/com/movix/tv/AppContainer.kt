@@ -151,8 +151,8 @@ class AppContainer(context: Context) {
             sync.start()
             sync.onForeground()
         }
-        // En arrière-plan, au plus une fois toutes les 12 h.
-        updates.start()
+        // MYO has its own application ID. Do not offer automatic updates from
+        // the unrelated Movix TV APK feed; delivery is via MYO's verified APKs.
     }
     /** Bloqueur du lecteur web (moteur adblock-rust, chargé à la première ouverture). */
     val embedFilter: com.movix.tv.ui.embed.EmbedFilter = object : com.movix.tv.ui.embed.EmbedFilter {
