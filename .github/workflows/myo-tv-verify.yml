@@ -156,7 +156,7 @@ jobs:
           ram-size: 2048M
           emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -no-snapshot
           script: |
-            set -euxo pipefail
+            set -eu
             mkdir -p tv-smoke-output
             APK="$(find tv-apks -type f -name '*x86*.apk' | head -1)"
             test -s "$APK"
