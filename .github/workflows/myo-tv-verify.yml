@@ -90,6 +90,26 @@ jobs:
           name: myo-open-cinema-network
           path: open-cinema-network.txt
           if-no-files-found: ignore
+      - name: Verify MYO package, TV manifest and APK signatures
+        shell: bash
+        run: |
+          set -euo pipefail
+          : > myo-apk-inspection.txt
+          for apk in app-tv/app/build/outputs/apk/debug/*.apk; do
+            echo "===== $apk =====" | tee -a myo-apk-inspection.txt
+            "$ANDROID_HOME/build-tools/37.0.0/aapt" dump badging "$apk" | tee -a myo-apk-inspection.txt
+            "$ANDROID_HOME/build-tools/37.0.0/apksigner" verify --verbose "$apk" | tee -a myo-apk-inspection.txt
+          done
+          grep -q "package: name='com.myo.tv'" myo-apk-inspection.txt
+          grep -q "application-label:'MYO'" myo-apk-inspection.txt
+          grep -q "com.movix.tv.MainActivity" myo-apk-inspection.txt
+      - name: Archive inspected Android APK metadata
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: myo-apk-inspection
+          path: myo-apk-inspection.txt
+          if-no-files-found: ignore
       - name: Archive source test reports
         if: always()
         uses: actions/upload-artifact@v4
