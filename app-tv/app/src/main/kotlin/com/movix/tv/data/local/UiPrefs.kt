@@ -37,7 +37,7 @@ enum class AccentColor(val id: String, val argb: Long) {
     YELLOW("yellow", 0xFFEAB308);
 
     companion object {
-        fun of(id: String?): AccentColor = entries.firstOrNull { it.id == id } ?: RED
+        fun of(id: String?): AccentColor = entries.firstOrNull { it.id == id } ?: PURPLE
     }
 }
 
