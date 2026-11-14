@@ -147,7 +147,7 @@ jobs:
       - name: Run native Android TV emulator and D-pad smoke test
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 35
+          api-level: 34
           target: android-tv
           arch: x86
           avd-name: myo-android-tv
