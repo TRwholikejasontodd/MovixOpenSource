@@ -25,7 +25,7 @@ class OpenCinemaNetworkTest {
             override fun dispatch(request: RecordedRequest): MockResponse {
                 synchronized(paths) { paths.add(request.url.encodedPath) }
                 return MockResponse.Builder().body(
-                    """{"files":[{"name":"actual_full_film_720p.mp4","size":"425000000","format":"MPEG4"},
+                    """{"files":[{"name":"Content/actual_full_film_720p.mp4","size":"425000000","format":"MPEG4"},
                     {"name":"thumb.jpg","size":"9000","format":"JPEG"}]}"""
                 ).build()
             }
@@ -47,7 +47,7 @@ class OpenCinemaNetworkTest {
         assertEquals(4, paths.size)
         assertTrue(paths.all { it.startsWith("/metadata/") })
         assertTrue(films.all { it.mediaUrl.contains("/download/") })
-        assertTrue(films.all { it.mediaUrl.endsWith("/actual_full_film_720p.mp4") })
+        assertTrue(films.all { it.mediaUrl.contains("/Content/actual_full_film_720p.mp4") })
     }
 
     @Test fun neverInventsAStreamWhenMetadataHasNoFilm() = runTest {
