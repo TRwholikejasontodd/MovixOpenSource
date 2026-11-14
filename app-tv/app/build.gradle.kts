@@ -74,11 +74,11 @@ android {
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.movix.tv"
+        applicationId = "com.myo.tv"
         minSdk = 25
         targetSdk = 36
-        versionCode = 8
-        versionName = "0.2.6"
+        versionCode = 9
+        versionName = "0.3.0-myo-preview"
         buildConfigField("String", "TMDB_KEY", "\"$tmdbKey\"")
         buildConfigField("String", "DEV_VIP_KEY", "\"\"")
     }
