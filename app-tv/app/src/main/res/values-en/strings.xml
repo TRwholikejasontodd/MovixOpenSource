@@ -5,6 +5,7 @@
     <string name="nav_movies">Movies</string>
     <string name="nav_series">TV shows</string>
     <string name="nav_anime">Anime</string>
+    <string name="nav_open">Open cinema</string>
     <string name="nav_watchlist">My list</string>
     <string name="nav_settings">Settings</string>
 
