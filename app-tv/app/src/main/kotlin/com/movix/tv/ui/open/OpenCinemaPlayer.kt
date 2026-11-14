@@ -60,7 +60,9 @@ import kotlinx.coroutines.launch
 fun OpenCinemaPlayer(film: OpenFilm, onExit: () -> Unit) {
     val container = LocalContext.current.container
     val lifecycleOwner = LocalLifecycleOwner.current
-    val progressKey = "myo_open_resume_${film.entry.id}"
+    // Open-cinema progress is isolated by the currently linked profile.
+    val profileId = container.accounts.current?.profileId ?: "local_guest"
+    val progressKey = "myo_open_resume_${profileId}_${film.entry.id}"
     val player = remember(film.mediaUrl) {
         container.playerEngine.newPlayer().apply {
             setMediaSource(container.playerEngine.mediaSource(film.mediaUrl, StreamKind.FILE))
