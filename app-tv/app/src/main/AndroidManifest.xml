@@ -18,7 +18,7 @@
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
 
     <application
-        android:name=".MovixApp"
+        android:name="com.movix.tv.MovixApp"
         android:allowBackup="false"
         android:banner="@drawable/banner"
         android:icon="@drawable/ic_launcher"
@@ -27,7 +27,7 @@
         android:theme="@style/Theme.Movix">
 
         <activity
-            android:name=".MainActivity"
+            android:name="com.movix.tv.MainActivity"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenLayout|screenSize|smallestScreenSize|uiMode"
             android:exported="true"
             android:screenOrientation="landscape">
@@ -40,7 +40,7 @@
 
         <!-- Résultat des sessions PackageInstaller de la mise à jour. -->
         <receiver
-            android:name=".data.update.UpdateInstallReceiver"
+            android:name="com.movix.tv.data.update.UpdateInstallReceiver"
             android:exported="false" />
 
         <!-- Repli ACTION_VIEW : l'APK vérifié de cacheDir/update/, lu par l'installeur. -->
