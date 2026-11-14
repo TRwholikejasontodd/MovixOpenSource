@@ -142,7 +142,7 @@ jobs:
             test -s "$APK"
             adb install -r "$APK"
             adb logcat -c
-            adb shell am start -n com.movix.tv/.MainActivity
+            adb shell am start -n com.myo.tv/com.movix.tv.MainActivity
             sleep 14
             adb shell input keyevent KEYCODE_DPAD_LEFT
             adb shell input keyevent KEYCODE_DPAD_RIGHT
@@ -150,10 +150,10 @@ jobs:
             adb exec-out screencap -p > tv-smoke-output/myo-home.png
             adb logcat -d -v time > tv-smoke-output/adb-logcat.txt
             adb shell dumpsys activity activities > tv-smoke-output/activities.txt
-            PID="$(adb shell pidof com.movix.tv | tr -d '\r')"
+            PID="$(adb shell pidof com.myo.tv | tr -d '\r')"
             echo "MYO_PID=$PID" | tee tv-smoke-output/result.txt
             test -n "$PID"
-            if grep -E 'FATAL EXCEPTION|Process: com.movix.tv' tv-smoke-output/adb-logcat.txt; then
+            if grep -E 'FATAL EXCEPTION|Process: com.myo.tv' tv-smoke-output/adb-logcat.txt; then
               echo "Review AndroidRuntime lines in Logcat" >> tv-smoke-output/result.txt
               exit 1
             fi
