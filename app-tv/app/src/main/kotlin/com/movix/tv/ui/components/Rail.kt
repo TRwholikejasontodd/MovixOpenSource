@@ -58,6 +58,7 @@ private val Entries = listOf(
     RailEntry(Section.MOVIES, MovixIcons.Film, R.string.nav_movies),
     RailEntry(Section.SERIES, MovixIcons.Tv, R.string.nav_series),
     RailEntry(Section.ANIME, MovixIcons.Spark, R.string.nav_anime),
+    RailEntry(Section.OPEN, MovixIcons.Film, R.string.nav_open),
     RailEntry(Section.WATCHLIST, MovixIcons.Plus, R.string.nav_watchlist),
 )
 private val SettingsEntry = RailEntry(Section.SETTINGS, MovixIcons.Gear, R.string.nav_settings)
