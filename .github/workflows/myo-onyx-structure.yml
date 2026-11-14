@@ -1,0 +1,64 @@
+name: ONYX 1.8.16 TV — interoperability audit (no binaries published)
+
+on:
+  push:
+    branches:
+      - myo/onyx-provider-architecture
+    paths:
+      - .github/workflows/myo-onyx-structure.yml
+      - scripts/onyx_interop_report.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Obtain and verify official ONYX TV APK (temporary, no redistribution)
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL --retry 4 --retry-delay 3 --connect-timeout 20 \
+            'https://github.com/warbix-prog/ONYX/releases/download/v1.8.16/onyx-v1.8.16-tv.apk' \
+            -o /tmp/onyx-tv.apk
+          echo '38e0b8cb3a85efc22afc1d777402fad54694e5a39a9c0a0be8ae98c3140bf741  /tmp/onyx-tv.apk' | sha256sum -c -
+          file /tmp/onyx-tv.apk
+          unzip -t /tmp/onyx-tv.apk | tail -1
+      - name: Install JADX command line (for interoperability signatures only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL --retry 4 --retry-delay 3 \
+            'https://github.com/skylot/jadx/releases/download/v1.5.6/jadx-1.5.6.zip' \
+            -o /tmp/jadx.zip
+          mkdir -p /tmp/jadx
+          unzip -q /tmp/jadx.zip -d /tmp/jadx
+          chmod +x /tmp/jadx/bin/jadx
+          /tmp/jadx/bin/jadx --version
+      - name: Generate method and dependency signatures locally (not source code)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/onyx-jadx /tmp/onyx-log
+          # Decompilation stays on the runner; it is not committed or uploaded.
+          timeout 1100 /tmp/jadx/bin/jadx -d /tmp/onyx-jadx \
+            --no-res --threads-count 3 /tmp/onyx-tv.apk \
+            > /tmp/onyx-log/jadx.log 2>&1 || echo 'JADX_EXTRACT_PARTIAL=1' > /tmp/onyx-log/partial.flag
+          python3 scripts/onyx_interop_report.py /tmp/onyx-tv.apk /tmp/onyx-jadx . > onyx-interop-1.8.16.md
+          tail -25 /tmp/onyx-log/jadx.log | sed -E 's@(https?://)[^ ]+@<redacted URL>@g' >> onyx-interop-1.8.16.md
+      - name: Upload analysis only (no ONYX APK, code, secrets or endpoints)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: onyx-1.8.16-interoperability-signatures
+          path: onyx-interop-1.8.16.md
+          if-no-files-found: error
