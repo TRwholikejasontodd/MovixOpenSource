@@ -58,7 +58,6 @@ import com.movix.tv.data.movix.VipSubmitResult
 import com.movix.tv.ui.components.PillButton
 import com.movix.tv.ui.theme.MovixColors
 import com.movix.tv.ui.theme.MovixType
-import com.movix.tv.ui.update.UpdateSection
 import kotlinx.coroutines.launch
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
@@ -132,7 +131,7 @@ fun SettingsScreen(onLinkAccount: () -> Unit, modifier: Modifier = Modifier, onS
                         Pane.TMDB -> TmdbPane()
                         Pane.ABOUT -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
                             // Version installée et mise à jour depuis l'appli.
-                            UpdateSection()
+                            Text("MYO • version de test. Mises à jour uniquement depuis le dépôt MYO.", style = MovixType.Body)
                             Spacer(Modifier.height(40.dp))
                         }
                     }
