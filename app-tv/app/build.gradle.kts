@@ -30,12 +30,9 @@ val tmdbKey: String = run {
 }
 require(tmdbKey.all { it.isLetterOrDigit() }) { "Clé TMDB illisible (lettres et chiffres attendus)." }
 
-// Une version publique sans clé afficherait « Ajoute ta clé TMDB » à tout le monde.
-gradle.taskGraph.whenReady {
-    if (tmdbKey.isBlank() && allTasks.any { it.name.contains("Release") }) {
-        throw GradleException("Clé TMDB absente : renseigne VITE_TMDB_API_KEY dans ../.env (ou MOVIX_TMDB_KEY) avant une release.")
-    }
-}
+// MYO boots with a separately licensed open-film catalogue when TMDB is absent.
+// Do not block a release build because no personal TMDB key was supplied.
+// TMDB metadata and the independently playable catalogue remain separate.
 
 // Clé de diffusion : jamais dans git. Fichier de propriétés désigné par
 // `release.signingFile` dans local.properties, sinon `keys/` à la racine du
