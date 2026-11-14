@@ -45,6 +45,8 @@ import kotlinx.coroutines.launch
 import com.movix.tv.ui.details.DetailsScreen
 import com.movix.tv.ui.home.BrowseScreen
 import com.movix.tv.ui.home.WatchlistScreen
+import com.movix.tv.ui.open.OpenCinemaScreen
+import com.movix.tv.ui.open.OpenCinemaPlayer
 import com.movix.tv.ui.nav.Navigator
 import com.movix.tv.ui.nav.Route
 import com.movix.tv.ui.nav.Section
@@ -106,6 +108,7 @@ fun MovixRoot(onExit: () -> Unit) {
                 is Route.Main -> "main"
                 is Route.Details -> "details:${r.type}:${r.id}"
                 is Route.Player -> "player"
+                is Route.OpenPlayer -> "open-player"
                 Route.Link -> "link"
             }
         },
@@ -125,7 +128,19 @@ fun MovixRoot(onExit: () -> Unit) {
                 val enterContent = { runCatching { contentRequester.requestFocus() }; Unit }
                 saveable.SaveableStateProvider(route.section.name) {
                     when (route.section) {
-                        Section.SEARCH -> SearchScreen(onOpen = { nav.push(Route.Details(it.type, it.id, it)) }, modifier = contentModifier.padding(start = 60.dp))
+                        Section.SEARCH -> if (container.tmdbKey().isNullOrBlank()) {
+                            OpenCinemaScreen(
+                                onPlay = { nav.push(Route.OpenPlayer(it)) },
+                                searchMode = true,
+                                modifier = contentModifier,
+                            )
+                        } else {
+                            SearchScreen(onOpen = { nav.push(Route.Details(it.type, it.id, it)) }, modifier = contentModifier.padding(start = 60.dp))
+                        }
+                        Section.OPEN -> OpenCinemaScreen(
+                            onPlay = { nav.push(Route.OpenPlayer(it)) },
+                            modifier = contentModifier,
+                        )
                         Section.SETTINGS -> SettingsScreen(
                             onLinkAccount = { nav.push(Route.Link) },
                             modifier = contentModifier.padding(start = 60.dp),
@@ -135,6 +150,7 @@ fun MovixRoot(onExit: () -> Unit) {
                         else -> BrowseScreen(
                             section = route.section,
                             onOpen = { nav.push(Route.Details(it.type, it.id, it)) },
+                            onOpenCinema = { nav.push(Route.OpenPlayer(it)) },
                             onOpenSettings = { nav.select(Section.SETTINGS) },
                             onResume = { e ->
                                 nav.push(Route.Player(PlayTarget(PlayRequest(e.type, e.id, e.season, e.episode), e.meta?.title.orEmpty(), e.meta?.backdropPath)))
@@ -165,6 +181,10 @@ fun MovixRoot(onExit: () -> Unit) {
                 target = route.target,
                 onExit = { nav.pop() },
                 onOpenSettings = { nav.select(Section.SETTINGS) },
+            )
+            is Route.OpenPlayer -> OpenCinemaPlayer(
+                film = route.film,
+                onExit = { nav.pop() },
             )
             Route.Link -> LinkScreen(
                 onLinked = { nav.pop() },
