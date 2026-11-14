@@ -14,6 +14,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -50,6 +51,8 @@ data class OpenFilm(
 class OpenCinemaRepository(
     private val client: OkHttpClient,
     private val json: Json,
+    private val metadataBase: HttpUrl = "https://archive.org/metadata/".toHttpUrl(),
+    private val downloadBase: HttpUrl = "https://archive.org/download/".toHttpUrl(),
 ) {
     @Volatile private var cachedAt: Long = 0L
     @Volatile private var cached: List<OpenFilm> = emptyList()
@@ -72,7 +75,7 @@ class OpenCinemaRepository(
     }
 
     private suspend fun readFilm(entry: OpenFilmEntry): OpenFilm? = withContext(Dispatchers.IO) {
-        val metadataUrl = "https://archive.org/metadata/".toHttpUrl().newBuilder()
+        val metadataUrl = metadataBase.newBuilder()
             .addPathSegment(entry.id).build()
         val raw = client.newCall(Request.Builder().url(metadataUrl).build()).execute().use { response ->
             if (!response.isSuccessful) return@withContext null
@@ -82,7 +85,7 @@ class OpenCinemaRepository(
         if (root["is_dark"]?.jsonPrimitive?.contentOrNull == "true") return@withContext null
         val files = root["files"] as? JsonArray ?: return@withContext null
         val name = choosePlayableName(files) ?: return@withContext null
-        val mediaUrl = "https://archive.org/download/".toHttpUrl().newBuilder()
+        val mediaUrl = downloadBase.newBuilder()
             .addPathSegment(entry.id)
             .addPathSegment(name)
             .build()
