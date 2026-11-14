@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import com.movix.tv.ui.MovixRoot
+import com.movix.tv.ui.MyoStartup
 import com.movix.tv.ui.home.Screensaver
 import com.movix.tv.ui.home.ScreensaverHost
 import com.movix.tv.ui.theme.MovixTheme
@@ -33,7 +34,7 @@ class MainActivity : ComponentActivity() {
             MovixTheme(lowRam = (application as MovixApp).lowRam) {
                 Box(Modifier.fillMaxSize()) {
                     if (debugEmbed != null) com.movix.tv.ui.embed.EmbedView(debugEmbed, container.embedFilter, onClose = ::finish)
-                    else MovixRoot(onExit = ::finish)
+                    else MyoStartup { MovixRoot(onExit = ::finish) }
                     // Écran de veille par-dessus tout, jamais focalisé : les touches
                     // passent par dispatchKeyEvent.
                     ScreensaverHost()
