@@ -75,7 +75,6 @@ import com.movix.tv.ui.open.OpenCinemaScreen
 import com.movix.tv.ui.nav.Section
 import com.movix.tv.ui.theme.MovixColors
 import com.movix.tv.ui.theme.MovixType
-import com.movix.tv.ui.update.UpdateBanner
 import kotlinx.coroutines.delay
 import java.util.Locale
 
@@ -240,11 +239,6 @@ fun BrowseScreen(
                     }
                 }
             }
-        }
-        // Mise à jour disponible : petite carte en haut à droite, sur la bannière,
-        // jamais focalisée d'office (Haut depuis la première rangée).
-        if (section == Section.HOME) {
-            UpdateBanner(Modifier.align(Alignment.TopEnd).padding(top = 16.dp, end = 32.dp))
         }
     }
 }
