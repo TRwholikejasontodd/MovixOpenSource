@@ -6,6 +6,10 @@ on:
       - myo/onyx-provider-architecture
   workflow_dispatch:
 
+concurrency:
+  group: myo-android-tv-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -102,3 +106,61 @@ jobs:
           name: myo-tv-debug-apks
           path: app-tv/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+
+  emulator-smoke:
+    name: Android TV emulator launch, remote focus and Logcat
+    needs: android-tv
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout project
+        uses: actions/checkout@v4
+      - name: Retrieve verified debug APKs
+        uses: actions/download-artifact@v4
+        with:
+          name: myo-tv-debug-apks
+          path: tv-apks
+      - name: Enable KVM hardware acceleration
+        shell: bash
+        run: |
+          if test -e /dev/kvm; then sudo chmod a+rw /dev/kvm; fi
+      - name: Run native Android TV emulator and D-pad smoke test
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: android-tv
+          arch: x86
+          avd-name: myo-android-tv
+          profile: tv_1080p
+          emulator-boot-timeout: 900
+          ram-size: 2048M
+          emulator-options: -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect -no-snapshot
+          script: |
+            set -euxo pipefail
+            mkdir -p tv-smoke-output
+            APK="$(find tv-apks -type f -name '*x86*.apk' | head -1)"
+            test -s "$APK"
+            adb install -r "$APK"
+            adb logcat -c
+            adb shell am start -n com.movix.tv/.MainActivity
+            sleep 14
+            adb shell input keyevent KEYCODE_DPAD_LEFT
+            adb shell input keyevent KEYCODE_DPAD_RIGHT
+            sleep 3
+            adb exec-out screencap -p > tv-smoke-output/myo-home.png
+            adb logcat -d -v time > tv-smoke-output/adb-logcat.txt
+            adb shell dumpsys activity activities > tv-smoke-output/activities.txt
+            PID="$(adb shell pidof com.movix.tv | tr -d '\r')"
+            echo "MYO_PID=$PID" | tee tv-smoke-output/result.txt
+            test -n "$PID"
+            if grep -E 'FATAL EXCEPTION|Process: com.movix.tv' tv-smoke-output/adb-logcat.txt; then
+              echo "Review AndroidRuntime lines in Logcat" >> tv-smoke-output/result.txt
+              exit 1
+            fi
+      - name: Upload screenshot and emulator logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: myo-tv-emulator-smoke
+          path: tv-smoke-output/
+          if-no-files-found: ignore
