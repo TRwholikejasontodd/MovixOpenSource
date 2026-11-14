@@ -28,6 +28,7 @@ import com.movix.extract.OkHttpBridge
 import com.movix.tv.player.CodecSupport
 import com.movix.tv.player.MediaHeaders
 import com.movix.tv.player.PlayerEngine
+import com.movix.tv.data.open.OpenCinemaRepository
 import com.movix.tv.data.tmdb.CatalogRepository
 import com.movix.tv.data.tmdb.TmdbApi
 import kotlinx.coroutines.CoroutineScope
@@ -82,6 +83,8 @@ class AppContainer(context: Context) {
     /** Titres connus en tête de la recherche (barre de recherche d'imdb.com). */
     val imdb = ImdbSuggestions(http, json)
     val catalog = CatalogRepository(tmdb, imdb)
+    /** Public, keyless licensed media catalogue, distinct from TMDB metadata. */
+    val openCinema = OpenCinemaRepository(http, json)
 
     val movix = MovixApi(http, json)
     // Clé de test de local.properties (debug et benchmark seulement, vide en
