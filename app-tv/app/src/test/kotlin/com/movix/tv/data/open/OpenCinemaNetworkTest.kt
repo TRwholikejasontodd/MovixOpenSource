@@ -52,7 +52,10 @@ class OpenCinemaNetworkTest {
 
     @Test fun neverInventsAStreamWhenMetadataHasNoFilm() = runTest {
         val server2 = MockWebServer()
-        server2.enqueue(MockResponse.Builder().body("""{"files":[]}""").build())
+        server2.dispatcher = object : Dispatcher() {
+            override fun dispatch(request: RecordedRequest): MockResponse =
+                MockResponse.Builder().body("""{"files":[]}""").build()
+        }
         server2.start()
         try {
             val repo = OpenCinemaRepository(
@@ -61,10 +64,8 @@ class OpenCinemaNetworkTest {
                 metadataBase = server2.url("/metadata/"),
                 downloadBase = server2.url("/download/"),
             )
-            // One of the four results is empty; the other three may timeout or be absent:
-            // this test verifies only that invalid API data never invents playable URLs.
             val films = withContext(Dispatchers.Default) { repo.films() }
-            assertFalse(films.any { it.mediaUrl.isBlank() })
+            assertTrue(films.isEmpty())
         } finally { server2.close() }
     }
 }
