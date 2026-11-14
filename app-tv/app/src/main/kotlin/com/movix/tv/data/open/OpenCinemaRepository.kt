@@ -87,7 +87,7 @@ class OpenCinemaRepository(
         val name = choosePlayableName(files) ?: return@withContext null
         val mediaUrl = downloadBase.newBuilder()
             .addPathSegment(entry.id)
-            .addPathSegment(name)
+            .addPathSegments(name)
             .build()
             .toString()
         OpenFilm(
@@ -143,6 +143,9 @@ class OpenCinemaRepository(
                 val obj = item as? JsonObject ?: return@mapNotNull null
                 val name = (obj["name"] as? kotlinx.serialization.json.JsonPrimitive)?.contentOrNull ?: return@mapNotNull null
                 val size = (obj["size"] as? kotlinx.serialization.json.JsonPrimitive)?.contentOrNull?.toLongOrNull() ?: 0L
+                // Some Archive items store media in nested folders (e.g. Content/film.mp4).
+                // Preserve legitimate '/' separators but reject parent paths or empty components.
+                if (name.split('/').any { it == ".." || it == "." || it.isBlank() }) return@mapNotNull null
                 val lower = name.lowercase()
                 if (!lower.endsWith(".mp4") || size < 15_000_000L || size > 2_000_000_000L) return@mapNotNull null
                 if (listOf("preview", "trailer", "sample", "thumb", "clip", "teaser", "segment").any { it in lower }) return@mapNotNull null
