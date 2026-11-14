@@ -19,9 +19,9 @@ import com.movix.tv.R
  * de lecture et les crochets du focus (repris du logo [M]).
  */
 object MovixColors {
-    val Ink = Color(0xFF0A0A0A)
-    val Panel = Color(0xFF151515)
-    val Line = Color(0xFF2A2A2A)
+    val Ink = Color(0xFF0B0913)
+    val Panel = Color(0xFF1A1425)
+    val Line = Color(0xFF312642)
     val Text = Color(0xFFF4F4F0)
     val Soft = Color(0xFFD2D2CE)
     val Muted = Color(0xFFA1A1A1)
@@ -31,7 +31,7 @@ object MovixColors {
      * Couleur d'accent choisie dans les réglages (rouge Movix par défaut).
      * État Compose : tout ce qui lit [Red] se redessine quand elle change.
      */
-    private val accent = androidx.compose.runtime.mutableStateOf(Color(0xFFDC2626))
+    private val accent = androidx.compose.runtime.mutableStateOf(Color(0xFF9333EA))
     val Red: Color get() = accent.value
     fun setAccent(color: Color) { if (accent.value != color) accent.value = color }
 
